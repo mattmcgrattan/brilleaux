@@ -15,6 +15,8 @@ def brilleaux(anno_container):
                 try:
                     content = elucidate.got_body(r.json())
                     resp = content
+                except:
+                    resp = 'Nothing'
             else:
                 resp = 'Nothing'
         except:
