@@ -11,7 +11,7 @@ def brilleaux(anno_container):
         try:
             r = requests.get(request_uri,headers={'Accept': 'Application/ld+json; profile="http://iiif.io/api/presentation/2/context.json"'})
             print(r.status_code)
-            resp = r.status_code
+            resp = str(r.status_code)
         except:
             # this should 500 and return something informative.
             print('I do not know what went wrong.')
