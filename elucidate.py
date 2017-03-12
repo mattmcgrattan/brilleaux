@@ -5,6 +5,52 @@ import requests
 import validators
 
 import core
+import json
+
+
+def repair_results(json_dict):
+    '''
+    Takes a result returned from Digirati
+    Annotation Server, which does NOT
+    display properly using the SimpleAnnotation
+    endpoint in Mirador, and makes:
+
+    value = chars
+
+    and turns all oa:hasPurpose into:
+
+    oa:Tag
+    '''
+    for item in json_dict:
+        resource = item['resource']
+        for res in resource:
+            if 'value' in res.keys():
+                res['chars'] = res['value']
+                del res['value']
+            if 'oa:hasPurpose' in res.keys():
+                del res['oa:hasPurpose']
+                res['@type'] = 'oa:Tag'
+    return json.dumps(json_dict, indent=4)
+
+
+def got_body(json_data):
+    '''
+    Checks to see if a paged list is returned.
+
+    If yes, grab the first page in the list,
+    get the content.
+
+    Turn the list of items into an annotation result.
+
+    Update the content of those results so that
+    simpleAnnotationStore endpoint in Mirador
+    can display them.
+    '''
+    content_dict = json_data
+    anno_results = content_dict['first']['as:items']['@list']
+    updated = repair_results(anno_results)
+    return updated
+
 
 
 def get_headers(header_dictionary, proxy_proc_name):
