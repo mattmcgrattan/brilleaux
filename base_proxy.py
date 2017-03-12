@@ -10,8 +10,10 @@ def brilleaux(anno_container):
         request_uri = ''.join([anno_server, anno_container])
         try:
             r = requests.get(request_uri,headers={'Accept': 'Application/ld+json; profile="http://iiif.io/api/presentation/2/context.json"'})
-            print(r.status_code)
-            resp = str(r.status_code)
+            if r.status_code == requests.codes.ok:
+                resp = r.text
+            else:
+                resp = 'Nothing'
         except:
             # this should 500 and return something informative.
             print('I do not know what went wrong.')
