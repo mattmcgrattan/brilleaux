@@ -1,5 +1,6 @@
 import flask
 import requests
+import elucidate
 
 app = flask.Flask(__name__)
 
@@ -11,7 +12,9 @@ def brilleaux(anno_container):
         try:
             r = requests.get(request_uri,headers={'Accept': 'Application/ld+json; profile="http://iiif.io/api/presentation/2/context.json"'})
             if r.status_code == requests.codes.ok:
-                resp = r.text
+                try:
+                    content = elucidate.got_body(r.json())
+                    resp = content
             else:
                 resp = 'Nothing'
         except:
