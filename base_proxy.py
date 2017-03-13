@@ -75,8 +75,19 @@ def repair_results(json_dict, request_uri):
             if 'oa:hasPurpose' in res.keys():
                 del res['oa:hasPurpose']
                 res['@type'] = 'oa:Tag'
+        o_list = [target_extract(o) for o in item['on']]
+        item['on'] = o_list
         anno_list['resources'].append(item)
     return json.dumps(anno_list, indent=4)
+
+
+def target_extract(json_dict):
+    """
+    Extract the target and turn into a simple 'on'
+    :param json_dict:
+    :return:
+    """
+    return '#'.join([json_dict['full'], json_dict['selector']['value']])
 
 
 def got_body(json_data, request_uri):
