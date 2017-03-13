@@ -1,9 +1,10 @@
-import flask
-import requests
 import json
 
+import flask
+import requests
 
-def repair_results(json_dict):
+
+def repair_results(json_dict, request_uri):
     """
     Takes a result returned from Digirati
     Annotation Server, which does NOT
@@ -17,6 +18,7 @@ def repair_results(json_dict):
     oa:Tag
     """
     anno_list = {"@context": "http://iiif.io/api/presentation/2/context.json", "@type": "sc:AnnotationList",
+                 "@id": request_uri,
                  'resources': []}
     for item in json_dict:
         resource = item['resource']
@@ -31,7 +33,7 @@ def repair_results(json_dict):
     return json.dumps(anno_list, indent=4)
 
 
-def got_body(json_data):
+def got_body(json_data, request_uri):
     """
     Checks to see if a paged list is returned.
 
@@ -42,8 +44,8 @@ def got_body(json_data):
     """
     content_dict = json_data
     anno_results = content_dict['first']['as:items']['@list']
-    updated = repair_results(anno_results)
-    return updated
+    updated = repair_results(anno_results, request_uri)
+    return updated  # json.dumps(anno_results[0], indent=2)
 
 
 app = flask.Flask(__name__)
@@ -52,15 +54,16 @@ app = flask.Flask(__name__)
 @app.route('/annotationlist/<path:anno_container>', methods=['GET'])
 def brilleaux(anno_container):
     if flask.request.method == 'GET':
-        anno_server = 'https://annotation-dev.digtest.co.uk:443/annotation/w3c/'
+        anno_server = 'https://elucidate.dlcs-ida.org/annotation/w3c/'
         request_uri = ''.join([anno_server, anno_container])
         try:
             r = requests.get(request_uri, headers={
                 'Accept': 'Application/ld+json; profile="http://iiif.io/api/presentation/2/context.json"'})
             if r.status_code == requests.codes.ok:
                 try:
-                    content = got_body(r.json())
-                    resp = content
+                    content = got_body(r.json(), flask.request.url)
+                    resp = flask.Response(content, headers={'Content-Type': 'application/ld+json;charset=UTF-8'})
+                    # resp = json.dumps(r.json(), indent=4, sort_keys=True)
                 except:
                     resp = 'Nothing'
             else:
