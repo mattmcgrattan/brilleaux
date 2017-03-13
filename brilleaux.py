@@ -1,5 +1,5 @@
 import json
-
+import brilleaux_settings
 import flask
 import requests
 from datetime import timedelta
@@ -130,8 +130,26 @@ app = flask.Flask(__name__)
 @app.route('/annotationlist/<path:anno_container>', methods=['GET'])
 @crossdomain(origin='*')
 def brilleaux(anno_container):
+    """
+    Flask app.
+
+    Expects an md5 hashed annotation container  as part of the path.
+
+    Montague stores annotations in a container based on the md5 hash of
+    the canvas uri.
+
+    Requests the annotation list from Elucidate, using the IIIF context.
+
+    Unpacks the annotation list, and reformats the JSON to be in the
+    IIIF Presentation API annotation list format.
+
+    Returns JSON-LD for an annotation list.
+
+    The @id of the annotation list is set to the request_url.
+    """
     if flask.request.method == 'GET':
-        anno_server = 'https://elucidate.dlcs-ida.org/annotation/w3c/'
+        # 'https://elucidate.dlcs-ida.org/annotation/w3c/'
+        anno_server = brilleaux_settings.ELUCIDATE_URI
         request_uri = ''.join([anno_server, anno_container])
         # make sure URL ends in a /
         if request_uri[-1] != '/':
@@ -157,3 +175,7 @@ def brilleaux(anno_container):
             flask.abort(r.status_code)
     else:
         flask.abort(405)
+
+
+if __name__ == "__main__":
+    app.run()
