@@ -1,0 +1,235 @@
+{
+  "@context" : [ "http://www.w3.org/ns/anno.jsonld", "http://www.w3.org/ns/ldp.jsonld" ],
+  "id" : "https://annotation-dev.digtest.co.uk:443/annotation/w3c/6e5feff1b311abc12817b9a6f6ed5de3_c/",
+  "type" : "AnnotationCollection",
+  "label" : "http://wellcomelibrary.org/iiif/b22371321/canvas/c28",
+  "first" : {
+    "type" : "AnnotationPage",
+    "items" : [ {
+      "id" : "https://annotation-dev.digtest.co.uk:443/annotation/w3c/6e5feff1b311abc12817b9a6f6ed5de3_c/876b8a1d-6c9b-4e7c-80da-b808b4fe26db",
+      "type" : "Annotation",
+      "body" : [ {
+        "type" : "TextualBody",
+        "format" : "text/plain",
+        "value" : "Plato"
+      }, {
+        "value" : "entity:GPE",
+        "purpose" : "tagging"
+      } ],
+      "target" : {
+        "type" : "SpecificResource",
+        "dcterms:isPartOf" : "http://wellcomelibrary.org/iiif/b22371321/manifest",
+        "selector" : {
+          "type" : "FragmentSelector",
+          "conformsTo" : "http://www.w3.org/TR/media-frags/",
+          "value" : "xywh=50,2103,165,65"
+        },
+        "source" : "http://wellcomelibrary.org/iiif/b22371321/canvas/c28"
+      },
+      "motivation" : [ "tagging", "commenting" ]
+    }, {
+      "id" : "https://annotation-dev.digtest.co.uk:443/annotation/w3c/6e5feff1b311abc12817b9a6f6ed5de3_c/d5ba0c04-f876-4a7b-a9ff-386b12717b58",
+      "type" : "Annotation",
+      "body" : [ {
+        "type" : "TextualBody",
+        "format" : "text/plain",
+        "value" : "Shakespeare"
+      }, {
+        "value" : "entity:GPE",
+        "purpose" : "tagging"
+      } ],
+      "target" : {
+        "type" : "SpecificResource",
+        "dcterms:isPartOf" : "http://wellcomelibrary.org/iiif/b22371321/manifest",
+        "selector" : {
+          "type" : "FragmentSelector",
+          "conformsTo" : "http://www.w3.org/TR/media-frags/",
+          "value" : "xywh=260,2104,358,71"
+        },
+        "source" : "http://wellcomelibrary.org/iiif/b22371321/canvas/c28"
+      },
+      "motivation" : [ "tagging", "commenting" ]
+    }, {
+      "id" : "https://annotation-dev.digtest.co.uk:443/annotation/w3c/6e5feff1b311abc12817b9a6f6ed5de3_c/4638f1c3-3ac9-47fe-978c-0be1218ae5a1",
+      "type" : "Annotation",
+      "body" : [ {
+        "type" : "TextualBody",
+        "format" : "text/plain",
+        "value" : "Goethe"
+      }, {
+        "value" : "entity:GPE",
+        "purpose" : "tagging"
+      } ],
+      "target" : {
+        "type" : "SpecificResource",
+        "dcterms:isPartOf" : "http://wellcomelibrary.org/iiif/b22371321/manifest",
+        "selector" : {
+          "type" : "FragmentSelector",
+          "conformsTo" : "http://www.w3.org/TR/media-frags/",
+          "value" : "xywh=648,2105,214,66"
+        },
+        "source" : "http://wellcomelibrary.org/iiif/b22371321/canvas/c28"
+      },
+      "motivation" : [ "tagging", "commenting" ]
+    }, {
+      "id" : "https://annotation-dev.digtest.co.uk:443/annotation/w3c/6e5feff1b311abc12817b9a6f6ed5de3_c/78f7cf30-ca4d-4a1e-882e-7f2dee0d616a",
+      "type" : "Annotation",
+      "body" : [ {
+        "type" : "TextualBody",
+        "format" : "text/plain",
+        "value" : "Humboldt"
+      }, {
+        "value" : "entity:GPE",
+        "purpose" : "tagging"
+      } ],
+      "target" : {
+        "type" : "SpecificResource",
+        "dcterms:isPartOf" : "http://wellcomelibrary.org/iiif/b22371321/manifest",
+        "selector" : {
+          "type" : "FragmentSelector",
+          "conformsTo" : "http://www.w3.org/TR/media-frags/",
+          "value" : "xywh=908,2105,308,66"
+        },
+        "source" : "http://wellcomelibrary.org/iiif/b22371321/canvas/c28"
+      },
+      "motivation" : [ "tagging", "commenting" ]
+    }, {
+      "id" : "https://annotation-dev.digtest.co.uk:443/annotation/w3c/6e5feff1b311abc12817b9a6f6ed5de3_c/9cf19075-ebc0-4e9b-9c63-58c00eca2264",
+      "type" : "Annotation",
+      "body" : [ {
+        "type" : "TextualBody",
+        "format" : "text/plain",
+        "value" : "Quoi de"
+      }, {
+        "value" : "entity:PERSON",
+        "purpose" : "tagging"
+      } ],
+      "target" : {
+        "type" : "SpecificResource",
+        "dcterms:isPartOf" : "http://wellcomelibrary.org/iiif/b22371321/manifest",
+        "selector" : {
+          "type" : "FragmentSelector",
+          "conformsTo" : "http://www.w3.org/TR/media-frags/",
+          "value" : "xywh=442,2650,109,48"
+        },
+        "source" : "http://wellcomelibrary.org/iiif/b22371321/canvas/c28"
+      },
+      "motivation" : [ "tagging", "commenting" ]
+    }, {
+      "id" : "https://annotation-dev.digtest.co.uk:443/annotation/w3c/6e5feff1b311abc12817b9a6f6ed5de3_c/c3df62bb-f509-4d45-a888-5e2ad7db60c1",
+      "type" : "Annotation",
+      "body" : [ {
+        "type" : "TextualBody",
+        "format" : "text/plain",
+        "value" : "Bacon"
+      }, {
+        "value" : "entity:PERSON",
+        "purpose" : "tagging"
+      } ],
+      "target" : {
+        "type" : "SpecificResource",
+        "dcterms:isPartOf" : "http://wellcomelibrary.org/iiif/b22371321/manifest",
+        "selector" : {
+          "type" : "FragmentSelector",
+          "conformsTo" : "http://www.w3.org/TR/media-frags/",
+          "value" : "xywh=1259,2105,173,53"
+        },
+        "source" : "http://wellcomelibrary.org/iiif/b22371321/canvas/c28"
+      },
+      "motivation" : [ "tagging", "commenting" ]
+    }, {
+      "id" : "https://annotation-dev.digtest.co.uk:443/annotation/w3c/6e5feff1b311abc12817b9a6f6ed5de3_c/2f84efc4-de5c-4afc-b1b2-b8e3aa462240",
+      "type" : "Annotation",
+      "body" : [ {
+        "type" : "TextualBody",
+        "format" : "text/plain",
+        "value" : "Quoi de"
+      }, {
+        "value" : "entity:PERSON",
+        "purpose" : "tagging"
+      } ],
+      "target" : {
+        "type" : "SpecificResource",
+        "dcterms:isPartOf" : "http://wellcomelibrary.org/iiif/b22371321/manifest",
+        "selector" : {
+          "type" : "FragmentSelector",
+          "conformsTo" : "http://www.w3.org/TR/media-frags/",
+          "value" : "xywh=572,2650,51,39"
+        },
+        "source" : "http://wellcomelibrary.org/iiif/b22371321/canvas/c28"
+      },
+      "motivation" : [ "tagging", "commenting" ]
+    }, {
+      "id" : "https://annotation-dev.digtest.co.uk:443/annotation/w3c/6e5feff1b311abc12817b9a6f6ed5de3_c/33fca74d-761a-4a60-80d8-a6596d1e2f7b",
+      "type" : "Annotation",
+      "body" : [ {
+        "type" : "TextualBody",
+        "format" : "text/plain",
+        "value" : "Jules Cesar"
+      }, {
+        "value" : "entity:PERSON",
+        "purpose" : "tagging"
+      } ],
+      "target" : {
+        "type" : "SpecificResource",
+        "dcterms:isPartOf" : "http://wellcomelibrary.org/iiif/b22371321/manifest",
+        "selector" : {
+          "type" : "FragmentSelector",
+          "conformsTo" : "http://www.w3.org/TR/media-frags/",
+          "value" : "xywh=1106,2987,154,40"
+        },
+        "source" : "http://wellcomelibrary.org/iiif/b22371321/canvas/c28"
+      },
+      "motivation" : [ "tagging", "commenting" ]
+    }, {
+      "id" : "https://annotation-dev.digtest.co.uk:443/annotation/w3c/6e5feff1b311abc12817b9a6f6ed5de3_c/4c6e1213-dc8d-4c46-8901-3631cfcaaf57",
+      "type" : "Annotation",
+      "body" : [ {
+        "type" : "TextualBody",
+        "format" : "text/plain",
+        "value" : "Histoire"
+      }, {
+        "value" : "entity:NORP",
+        "purpose" : "tagging"
+      } ],
+      "target" : {
+        "type" : "SpecificResource",
+        "dcterms:isPartOf" : "http://wellcomelibrary.org/iiif/b22371321/manifest",
+        "selector" : {
+          "type" : "FragmentSelector",
+          "conformsTo" : "http://www.w3.org/TR/media-frags/",
+          "value" : "xywh=678,2988,191,39"
+        },
+        "source" : "http://wellcomelibrary.org/iiif/b22371321/canvas/c28"
+      },
+      "motivation" : [ "tagging", "commenting" ]
+    }, {
+      "id" : "https://annotation-dev.digtest.co.uk:443/annotation/w3c/6e5feff1b311abc12817b9a6f6ed5de3_c/0b1ed322-f9c2-4936-ad29-7cd8200b4ed9",
+      "type" : "Annotation",
+      "body" : [ {
+        "type" : "TextualBody",
+        "format" : "text/plain",
+        "value" : "Jules Cesar"
+      }, {
+        "value" : "entity:PERSON",
+        "purpose" : "tagging"
+      } ],
+      "target" : {
+        "type" : "SpecificResource",
+        "dcterms:isPartOf" : "http://wellcomelibrary.org/iiif/b22371321/manifest",
+        "selector" : {
+          "type" : "FragmentSelector",
+          "conformsTo" : "http://www.w3.org/TR/media-frags/",
+          "value" : "xywh=963,2988,121,39"
+        },
+        "source" : "http://wellcomelibrary.org/iiif/b22371321/canvas/c28"
+      },
+      "motivation" : [ "tagging", "commenting" ]
+    } ],
+    "next" : "https://annotation-dev.digtest.co.uk:443/annotation/w3c/6e5feff1b311abc12817b9a6f6ed5de3_c/?page=1&desc=1",
+    "partOf" : "https://annotation-dev.digtest.co.uk:443/annotation/w3c/6e5feff1b311abc12817b9a6f6ed5de3_c/",
+    "startIndex" : 0
+  },
+  "last" : "https://annotation-dev.digtest.co.uk:443/annotation/w3c/6e5feff1b311abc12817b9a6f6ed5de3_c/?page=1&desc=1",
+  "total" : 14
+}
