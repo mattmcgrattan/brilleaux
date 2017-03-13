@@ -88,7 +88,7 @@ def repair_results(json_dict, request_uri):
                     # o_list = [target_extract(o) for o in item['on']]
                     item['on'] = [target_extract(o) for o in item['on']][0]  # o_list[0]
                 anno_list['resources'].append(item)
-                return json.dumps(anno_list, indent=4)
+        return json.dumps(anno_list, indent=4)
     else:
         return None
 
@@ -163,6 +163,7 @@ def brilleaux(anno_container):
         print(r.status_code)
         if r.status_code == requests.codes.ok:
             if r.json():
+                print(r.json())
                 content = got_body(r.json(), flask.request.url)
                 if content:
                     resp = flask.Response(content, headers={'Content-Type': 'application/ld+json;charset=UTF-8'})
