@@ -139,6 +139,8 @@ def brilleaux(anno_container):
             flask.request.url += "/"
         r = requests.get(request_uri, headers={
             'Accept': 'Application/ld+json; profile="http://iiif.io/api/presentation/2/context.json"'})
+        print('Request URI')
+        print(request_uri)
         print("Elucidate Status Code")
         print(r.status_code)
         if r.status_code == requests.codes.ok:
