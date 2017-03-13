@@ -76,7 +76,7 @@ def repair_results(json_dict, request_uri):
                 del res['oa:hasPurpose']
                 res['@type'] = 'oa:Tag'
         o_list = [target_extract(o) for o in item['on']]
-        item['on'] = o_list
+        item['on'] = o_list[0]
         anno_list['resources'].append(item)
     return json.dumps(anno_list, indent=4)
 
