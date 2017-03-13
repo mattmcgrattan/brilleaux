@@ -27,7 +27,7 @@ def repair_results(json_dict):
             if 'oa:hasPurpose' in res.keys():
                 del res['oa:hasPurpose']
                 res['@type'] = 'oa:Tag'
-            anno_list['resources'].append(res)
+        anno_list['resources'].append(item)
     return json.dumps(anno_list, indent=4)
 
 
