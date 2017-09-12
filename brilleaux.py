@@ -5,6 +5,7 @@ import requests
 from datetime import timedelta
 from flask import make_response, request, current_app
 from functools import update_wrapper
+from flask_cache import Cache
 
 
 def crossdomain(origin=None, methods=None, headers=None,
@@ -125,10 +126,12 @@ def got_body(json_data, request_uri):
 
 
 app = flask.Flask(__name__)
+cache = Cache(app, config={'CACHE_TYPE': 'filesystem', 'CACHE_DIR': './'})
 
 
 @app.route('/annotationlist/<path:anno_container>', methods=['GET'])
 @crossdomain(origin='*')
+@cache.cached(timeout=20)  # 20 second caching.
 def brilleaux(anno_container):
     """
     Flask app.
