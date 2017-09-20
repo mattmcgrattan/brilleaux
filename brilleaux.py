@@ -167,7 +167,11 @@ def brilleaux(anno_container):
         if r.status_code == requests.codes.ok:
             if r.json():
                 print(r.json())
-                content = got_body(r.json(), flask.request.url)
+                try:
+                    content = got_body(r.json(), flask.request.url)
+                except:
+                    flask.abort(500)
+                    content = None
                 if content:
                     resp = flask.Response(content, headers={'Content-Type': 'application/ld+json;charset=UTF-8'})
                     return resp
