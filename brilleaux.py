@@ -89,13 +89,10 @@ def repair_results(json_dict, request_uri):
                         res['@type'] = 'oa:Tag'
                 if isinstance(item['on'], dict):
                     item['on'] = target_extract(item['on'])  # o
-                else:
-                    # o_list = [target_extract(o) for o in item['on']]
-                    # print('Item on:', item['on'])
-                    # print('Type:', type(item['on']))
-                    if isinstance(item['on'], list):
+                elif isinstance(item['on'], list):
                         item['on'] = [target_extract(o) for o in item['on']][0]  # o_list[0]
-                print(item)
+                else:
+                    pass
                 anno_list['resources'].append(item)
         return json.dumps(anno_list, indent=4)
     else:
