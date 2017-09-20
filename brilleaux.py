@@ -69,11 +69,15 @@ def repair_results(json_dict, request_uri):
     anno_list = {"@context": "http://iiif.io/api/presentation/2/context.json", "@type": "sc:AnnotationList",
                  "@id": request_uri,
                  'resources': []}
+
     if len(json_dict) > 0:
         for item in json_dict:
-            if 'resource' in item:
+            # ignore target-less annotations.
+            if 'resource' in item and 'on' in item:
                 resource = item['resource']
                 for res in resource:
+                    # ignore resources that are not dicts with keys
+                    # if isinstance(res, dict):
                     if 'value' in res.keys():
                         # IIIF Annotations use chars,
                         # not value.
@@ -87,7 +91,11 @@ def repair_results(json_dict, request_uri):
                     item['on'] = target_extract(item['on'])  # o
                 else:
                     # o_list = [target_extract(o) for o in item['on']]
-                    item['on'] = [target_extract(o) for o in item['on']][0]  # o_list[0]
+                    # print('Item on:', item['on'])
+                    # print('Type:', type(item['on']))
+                    if isinstance(item['on'], list):
+                        item['on'] = [target_extract(o) for o in item['on']][0]  # o_list[0]
+                print(item)
                 anno_list['resources'].append(item)
         return json.dumps(anno_list, indent=4)
     else:
@@ -114,7 +122,7 @@ def got_body(json_data, request_uri):
     """
     content_dict = json_data
     if ('first' in content_dict and 'as:items' in content_dict['first']
-        and '@list' in content_dict['first']['as:items']):
+            and '@list' in content_dict['first']['as:items']):
         anno_results = content_dict['first']['as:items']['@list']
         updated = repair_results(anno_results, request_uri)
         if updated:
@@ -151,13 +159,18 @@ def brilleaux(anno_container):
     The @id of the annotation list is set to the request_url.
     """
     if flask.request.method == 'GET':
-        # 'https://elucidate.dlcs-ida.org/annotation/w3c/'
-        anno_server = brilleaux_settings.ELUCIDATE_URI
+        # e.g. anno_server = 'https://elucidate.dlcs-ida.org/annotation/w3c/'
+        if brilleaux_settings.ELUCIDATE_URI:
+            anno_server = brilleaux_settings.ELUCIDATE_URI
+        else:
+            anno_server = 'https://elucidate.dlcs-ida.org/annotation/w3c/'
         request_uri = ''.join([anno_server, anno_container])
         # make sure URL ends in a /
         if request_uri[-1] != '/':
             request_uri += "/"
-            flask.request.url += "/"
+            fl_req_uri = flask.request.url + "/"
+        else:
+            fl_req_uri = flask.request.url
         r = requests.get(request_uri, headers={
             'Accept': 'Application/ld+json; profile="http://iiif.io/api/presentation/2/context.json"'})
         print('Request URI')
@@ -167,8 +180,9 @@ def brilleaux(anno_container):
         if r.status_code == requests.codes.ok:
             if r.json():
                 print(r.json())
+                # noinspection PyBroadException
                 try:
-                    content = got_body(r.json(), flask.request.url)
+                    content = got_body(r.json(), fl_req_uri)
                 except:
                     flask.abort(500)
                     content = None
