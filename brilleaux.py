@@ -93,7 +93,8 @@ def repair_results(json_dict, request_uri):
                         item['on'] = [target_extract(o) for o in item['on']][0]  # o_list[0]
                 else:
                     pass
-                anno_list['resources'].append(item)
+                if 'on' in item:
+                    anno_list['resources'].append(item)
         return json.dumps(anno_list, indent=4)
     else:
         return None
@@ -105,7 +106,13 @@ def target_extract(json_dict):
     :param json_dict:
     :return:
     """
-    return '#'.join([json_dict['full'], json_dict['selector']['value']])
+    if 'full' in json_dict:
+        if 'selector' in json_dict:
+            return '#'.join([json_dict['full'], json_dict['selector']['value']])
+        else:
+            return json_dict['full']
+    else:
+        return None
 
 
 def got_body(json_data, request_uri):
