@@ -129,7 +129,9 @@ def repair_results(json_dict, request_uri, cont):
                                      'format': 'application/html'
                                      }
                                 ]
-                    if 'on' in item:
+                                print(item['on'])
+                                item['on'] = target_extract(item['on'])
+                if 'on' in item:
                         anno_list['resources'].append(item)
                 else:
                     pass
@@ -148,9 +150,9 @@ def target_extract(json_dict):
         if 'selector' in json_dict:
             return '#'.join([json_dict['full'], json_dict['selector']['value']])
         else:
-            return '#'.join([json_dict['full'], 'xywh=0,0,200,200'])
+            return '#'.join([json_dict['full'], 'xywh=0,0,20,20'])
     else:
-        return None
+        return '#'.join([json_dict, 'xywh=0,0,20,20'])
 
 
 def got_body(json_data, request_uri, context):
