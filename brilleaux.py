@@ -6,6 +6,8 @@ from datetime import timedelta
 from flask import make_response, request, current_app
 from functools import update_wrapper
 from flask_cache import Cache
+from pyld import jsonld
+import os
 
 
 def crossdomain(origin=None, methods=None, headers=None,
@@ -51,7 +53,25 @@ def crossdomain(origin=None, methods=None, headers=None,
     return decorator
 
 
-def repair_results(json_dict, request_uri):
+def to_rdfa(resource, con_txt):
+    if '@type' in resource:
+        if resource['@type'] == 'dctypes:Dataset':
+            # print(type(resource['value']))
+            expanded = jsonld.expand(json.loads(resource['value']))[0]
+            expanded['@context'] = con_txt
+            e = jsonld.expand(expanded)
+            rows = []
+            for f in e:
+                for k, v in f.items():
+                    i = jsonld.compact({k: [x for x in v]}, ctx=con_txt)
+                    del (i['@context'])
+                    row = ''.join(['<p>', str([z for z, _ in i.items()][0]).split(':')[1].title(), ': <span property="',
+                                   str(k), '">', str('; '.join([t['@value'] for t in v])), '</span></p>'])
+                    rows.append(row)
+            return ''.join(rows)
+
+
+def repair_results(json_dict, request_uri, cont):
     """
     Takes a result returned from Digirati
     Annotation Server, which does NOT
@@ -73,29 +93,46 @@ def repair_results(json_dict, request_uri):
     if len(json_dict) > 0:
         for item in json_dict:
             # ignore target-less annotations.
-            if 'resource' in item and 'on' in item:
+            if 'resource' in item:
                 resource = item['resource']
-                for res in resource:
-                    if isinstance(res, dict):
-                        # ignore resources that are not dicts with keys
-                        # if isinstance(res, dict):
-                        if 'value' in res.keys():
-                            # IIIF Annotations use chars,
-                            # not value.
-                            res['chars'] = res['value']
-                            del res['value']
-                        if 'oa:hasPurpose' in res.keys():
-                            # IIIF Annotations don't use Purpose
-                            del res['oa:hasPurpose']
-                            res['@type'] = 'oa:Tag'
-                if isinstance(item['on'], dict):
-                    item['on'] = target_extract(item['on'])  # o
-                elif isinstance(item['on'], list):
-                        item['on'] = [target_extract(o) for o in item['on']][0]  # o_list[0]
+                if 'on' in item:
+                    if isinstance(resource, list):
+                        for res in resource:
+                            if isinstance(res, dict):
+                                if 'value' in res.keys():
+                                    if '@type' in res:
+                                        if res['@type'] == 'dctypes:Dataset':
+                                            res['chars'] = to_rdfa(res['value'], con_txt=cont)
+                                            res['@type'] = 'oa:Tag'
+                                            res['format'] = 'application/html'
+                                        else:
+                                            res['chars'] = res['value']
+                                    else:
+                                        res['chars'] = res['value']
+                                    del res['value']
+                                if 'oa:hasPurpose' in res.keys():
+                                    # IIIF Annotations don't use Purpose
+                                    del res['oa:hasPurpose']
+                                    res['@type'] = 'oa:Tag'
+                        if isinstance(item['on'], dict):
+                            item['on'] = target_extract(item['on'])  # o
+                        elif isinstance(item['on'], list):
+                            item['on'] = [target_extract(o) for o in item['on']][0]  # o_list[0]
+                        else:
+                            pass
+                    else:
+                        if '@type' in resource:
+                            if resource['@type'] == 'dctypes:Dataset':
+                                item['resource'] = [
+                                    {'chars': to_rdfa(resource, con_txt=cont),
+                                     '@type': 'oa:Tag',
+                                     'format': 'application/html'
+                                     }
+                                ]
+                    if 'on' in item:
+                        anno_list['resources'].append(item)
                 else:
                     pass
-                if 'on' in item:
-                    anno_list['resources'].append(item)
         return json.dumps(anno_list, indent=4)
     else:
         return None
@@ -116,7 +153,7 @@ def target_extract(json_dict):
         return None
 
 
-def got_body(json_data, request_uri):
+def got_body(json_data, request_uri, context):
     """
     Checks to see if a paged list is returned.
 
@@ -127,9 +164,9 @@ def got_body(json_data, request_uri):
     """
     content_dict = json_data
     if ('first' in content_dict and 'as:items' in content_dict['first']
-            and '@list' in content_dict['first']['as:items']):
+        and '@list' in content_dict['first']['as:items']):
         anno_results = content_dict['first']['as:items']['@list']
-        updated = repair_results(anno_results, request_uri)
+        updated = repair_results(anno_results, request_uri, cont=context)
         if updated:
             return updated
         else:
@@ -163,6 +200,13 @@ def brilleaux(anno_container):
 
     The @id of the annotation list is set to the request_url.
     """
+    SITE_ROOT = os.path.realpath(os.path.dirname(__file__))
+    json_url = os.path.join(SITE_ROOT, "context.json")
+    master_context = json.load(open(json_url))
+    del (master_context['@context']['dct'])  # remove unwanted alternative dcterms 'dct' prefix
+    del (master_context['@context']['dcterm'])  # unwanted alternative dcterms 'dcterm' prefix
+    del (master_context['@context']['sdo'])  # unwanted alternative schema.org prefix
+    del (master_context['@context']['sorg'])
     if flask.request.method == 'GET':
         # e.g. anno_server = 'https://elucidate.dlcs-ida.org/annotation/w3c/'
         if brilleaux_settings.ELUCIDATE_URI:
@@ -184,10 +228,9 @@ def brilleaux(anno_container):
         print(r.status_code)
         if r.status_code == requests.codes.ok:
             if r.json():
-                print(r.json())
                 # noinspection PyBroadException
                 try:
-                    content = got_body(r.json(), fl_req_uri)
+                    content = got_body(r.json(), fl_req_uri, context=master_context)
                 except:
                     flask.abort(500)
                     content = None
