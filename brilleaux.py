@@ -148,7 +148,7 @@ def target_extract(json_dict):
         if 'selector' in json_dict:
             return '#'.join([json_dict['full'], json_dict['selector']['value']])
         else:
-            return json_dict['full']
+            return '#'.join([json_dict['full'], 'xywh=0,0,200,200'])
     else:
         return None
 
