@@ -76,17 +76,18 @@ def repair_results(json_dict, request_uri):
             if 'resource' in item and 'on' in item:
                 resource = item['resource']
                 for res in resource:
-                    # ignore resources that are not dicts with keys
-                    # if isinstance(res, dict):
-                    if 'value' in res.keys():
-                        # IIIF Annotations use chars,
-                        # not value.
-                        res['chars'] = res['value']
-                        del res['value']
-                    if 'oa:hasPurpose' in res.keys():
-                        # IIIF Annotations don't use Purpose
-                        del res['oa:hasPurpose']
-                        res['@type'] = 'oa:Tag'
+                    if isinstance(res, dict):
+                        # ignore resources that are not dicts with keys
+                        # if isinstance(res, dict):
+                        if 'value' in res.keys():
+                            # IIIF Annotations use chars,
+                            # not value.
+                            res['chars'] = res['value']
+                            del res['value']
+                        if 'oa:hasPurpose' in res.keys():
+                            # IIIF Annotations don't use Purpose
+                            del res['oa:hasPurpose']
+                            res['@type'] = 'oa:Tag'
                 if isinstance(item['on'], dict):
                     item['on'] = target_extract(item['on'])  # o
                 elif isinstance(item['on'], list):
