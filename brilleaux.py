@@ -170,12 +170,12 @@ def target_extract(json_dict, fake_selector=False):
             return '#'.join([json_dict['full'], json_dict['selector']['value']])
         else:
             if fake_selector:
-                return '#'.join([json_dict['full'], 'xywh=0,0,20,20'])
+                return '#'.join([json_dict['full'], 'xywh=percent:0,0,5,5'])
             else:
                 return json_dict['full']
     else:
         if fake_selector:
-            return '#'.join([json_dict, 'xywh=0,0,20,20'])
+            return '#'.join([json_dict, 'xywh=percent:0,0,5,5'])
         else:
             return json_dict
 
