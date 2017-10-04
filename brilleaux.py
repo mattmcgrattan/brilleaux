@@ -71,8 +71,8 @@ def to_rdfa(resource, con_txt, rdfa=True):
                              str(k), '">', str('; '.join([t['@value'] for t in v])), '</span></p>'])
                         rows.append(row)
                     else:
-                        row = '<br>'.join([str([z for z, _ in i.items()][0]), ': ',
-                                       str('; '.join([t['@value'] for t in v])), '; '])
+                        row = ''.join([str([z for z, _ in i.items()][0]), ': ',
+                                       str('; '.join([t['@value'] for t in v])), ';<br>'])
                         rows.append(row)
             return ''.join(rows)
 
@@ -101,6 +101,14 @@ def repair_results(json_dict, request_uri, cont):
             # ignore target-less annotations.
             if 'resource' in item:
                 resource = item['resource']
+                # convert motivations to Mirador format.
+                if 'motivation' in item:
+                    if '@id' in item['motivation']:
+                        item['motivation'] = item['motivation']['@id']
+                if 'as:generator' in item:
+                    del(item['as:generator'])
+                if 'label' in item:
+                    del(item['label'])
                 if 'on' in item:
                     if isinstance(resource, list):
                         for res in resource:
