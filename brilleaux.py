@@ -71,7 +71,7 @@ def to_rdfa(resource, con_txt, rdfa=True):
                              str(k), '">', str('; '.join([t['@value'] for t in v])), '</span></p>'])
                         rows.append(row)
                     else:
-                        row = ''.join([str([z for z, _ in i.items()][0]), ': ',
+                        row = '<br>'.join([str([z for z, _ in i.items()][0]), ': ',
                                        str('; '.join([t['@value'] for t in v])), '; '])
                         rows.append(row)
             return ''.join(rows)
