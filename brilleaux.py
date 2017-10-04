@@ -67,7 +67,7 @@ def to_rdfa(resource, con_txt, rdfa=True):
                     del (i['@context'])
                     if rdfa:
                         row = ''.join(
-                            ['<p>', str([z for z, _ in i.items()][0]).split(':')[1].title(), ': <span property="',
+                            ['<p><strong>', str([z for z, _ in i.items()][0]).split(':')[1].title(), '</strong>: <span property="',
                              str(k), '">', str('; '.join([t['@value'] for t in v])), '</span></p>'])
                         rows.append(row)
                     else:
