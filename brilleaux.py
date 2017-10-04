@@ -125,13 +125,15 @@ def repair_results(json_dict, request_uri, cont):
                                     else:
                                         res['chars'] = res['value']
                                     del res['value']
-                                if 'full' in res.keys():
-                                    res['chars'] = res['full']
-                                    del(res['full'])
                                 if 'oa:hasPurpose' in res.keys():
                                     # IIIF Annotations don't use Purpose
                                     del res['oa:hasPurpose']
                                     res['@type'] = 'oa:Tag'
+                                if 'full' in res.keys():
+                                    res['chars'] = '<a href="' + res['full'] + '">' + res['full'] + '</a>'
+                                    del(res['full'])
+                                    del(res['@type'])
+
                         if isinstance(item['on'], dict):
                             item['on'] = target_extract(item['on'])  # o
                         elif isinstance(item['on'], list):
