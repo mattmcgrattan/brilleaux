@@ -103,6 +103,7 @@ def repair_results(json_dict, request_uri, cont):
                 resource = item['resource']
                 # convert motivations to Mirador format.
                 if 'motivation' in item:
+                    # del(item['motivation'])
                     if '@id' in item['motivation']:
                         item['motivation'] = item['motivation']['@id']
                 if 'as:generator' in item:
@@ -117,13 +118,16 @@ def repair_results(json_dict, request_uri, cont):
                                     if '@type' in res:
                                         if res['@type'] == 'dctypes:Dataset':
                                             res['chars'] = to_rdfa(res['value'], con_txt=cont, rdfa=False)
-                                            res['@type'] = 'oa:Tag'
+                                            # res['@type'] = 'oa:Tag'
                                             res['format'] = 'application/html'
                                         else:
                                             res['chars'] = res['value']
                                     else:
                                         res['chars'] = res['value']
                                     del res['value']
+                                if 'full' in res.keys():
+                                    res['chars'] = res['full']
+                                    del(res['full'])
                                 if 'oa:hasPurpose' in res.keys():
                                     # IIIF Annotations don't use Purpose
                                     del res['oa:hasPurpose']
