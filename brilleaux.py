@@ -107,45 +107,44 @@ def repair_results(json_dict, request_uri, cont):
                     if '@id' in item['motivation']:
                         item['motivation'] = item['motivation']['@id']
                 if 'as:generator' in item:
-                    del(item['as:generator'])
+                    del (item['as:generator'])
                 if 'label' in item:
-                    del(item['label'])
+                    del (item['label'])
                 if 'on' in item:
                     if isinstance(resource, list):
                         for res in resource:
                             if isinstance(res, dict):
-                                if 'value' in res.keys():
-                                    if '@type' in res:
-                                        if res['@type'] == 'dctypes:Dataset':
-                                            res['chars'] = to_rdfa(res['value'], con_txt=cont, rdfa=False)
-                                            # res['@type'] = 'oa:Tag'
-                                            res['format'] = 'application/html'
-                                        else:
-                                            res['chars'] = res['value']
-                                    else:
-                                        res['chars'] = res['value']
-                                    del res['value']
+
                                 if 'oa:hasPurpose' in res.keys():
                                     # IIIF Annotations don't use Purpose
                                     del res['oa:hasPurpose']
                                     res['@type'] = 'oa:Tag'
                                 if 'full' in res.keys():
                                     res['chars'] = '<a href="' + res['full'] + '">' + res['full'] + '</a>'
-                                    del(res['full'])
-                                    del(res['@type'])
-
+                                    del (res['full'])
+                                    del (res['@type'])
+                                if 'value' in res.keys():
+                                    if '@type' in res:
+                                        if res['@type'] == 'dctypes:Dataset':
+                                            res = {'chars': to_rdfa(resource, con_txt=cont, rdfa=True),
+                                                   'format': 'application/html'
+                                                   }
+                                        else:
+                                            res['chars'] = res['value']
+                                    else:
+                                        res['chars'] = res['value']
+                                    del res['value']
                         if isinstance(item['on'], dict):
                             item['on'] = target_extract(item['on'])  # o
                         elif isinstance(item['on'], list):
                             item['on'] = [target_extract(o) for o in item['on']][0]  # o_list[0]
                         else:
-                            pass
+                            item['on'] = target_extract(item['on'])
                     else:
                         if '@type' in resource:
                             if resource['@type'] == 'dctypes:Dataset':
                                 item['resource'] = [
-                                    {'chars': to_rdfa(resource, con_txt=cont, rdfa=False),
-                                     '@type': 'oa:Tag',
+                                    {'chars': to_rdfa(resource, con_txt=cont, rdfa=True),
                                      'format': 'application/html'
                                      }
                                 ]
