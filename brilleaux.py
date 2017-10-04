@@ -53,7 +53,7 @@ def crossdomain(origin=None, methods=None, headers=None,
     return decorator
 
 
-def to_rdfa(resource, con_txt):
+def to_rdfa(resource, con_txt, rdfa=True):
     if '@type' in resource:
         if resource['@type'] == 'dctypes:Dataset':
             # print(type(resource['value']))
@@ -65,9 +65,15 @@ def to_rdfa(resource, con_txt):
                 for k, v in f.items():
                     i = jsonld.compact({k: [x for x in v]}, ctx=con_txt)
                     del (i['@context'])
-                    row = ''.join(['<p>', str([z for z, _ in i.items()][0]).split(':')[1].title(), ': <span property="',
-                                   str(k), '">', str('; '.join([t['@value'] for t in v])), '</span></p>'])
-                    rows.append(row)
+                    if rdfa:
+                        row = ''.join(
+                            ['<p>', str([z for z, _ in i.items()][0]).split(':')[1].title(), ': <span property="',
+                             str(k), '">', str('; '.join([t['@value'] for t in v])), '</span></p>'])
+                        rows.append(row)
+                    else:
+                        row = '<br>'.join([str([z for z, _ in i.items()][0]), ': ',
+                                       str('; '.join([t['@value'] for t in v])), '; '])
+                        rows.append(row)
             return ''.join(rows)
 
 
@@ -102,7 +108,7 @@ def repair_results(json_dict, request_uri, cont):
                                 if 'value' in res.keys():
                                     if '@type' in res:
                                         if res['@type'] == 'dctypes:Dataset':
-                                            res['chars'] = to_rdfa(res['value'], con_txt=cont)
+                                            res['chars'] = to_rdfa(res['value'], con_txt=cont, rdfa=False)
                                             res['@type'] = 'oa:Tag'
                                             res['format'] = 'application/html'
                                         else:
@@ -124,15 +130,14 @@ def repair_results(json_dict, request_uri, cont):
                         if '@type' in resource:
                             if resource['@type'] == 'dctypes:Dataset':
                                 item['resource'] = [
-                                    {'chars': to_rdfa(resource, con_txt=cont),
+                                    {'chars': to_rdfa(resource, con_txt=cont, rdfa=False),
                                      '@type': 'oa:Tag',
                                      'format': 'application/html'
                                      }
                                 ]
-                                print(item['on'])
-                                item['on'] = target_extract(item['on'])
+                                item['on'] = target_extract(item['on'], fake_selector=True)
                 if 'on' in item:
-                        anno_list['resources'].append(item)
+                    anno_list['resources'].append(item)
                 else:
                     pass
         return json.dumps(anno_list, indent=4)
@@ -140,9 +145,10 @@ def repair_results(json_dict, request_uri, cont):
         return None
 
 
-def target_extract(json_dict):
+def target_extract(json_dict, fake_selector=False):
     """
     Extract the target and turn into a simple 'on'
+    :param fake_selector:
     :param json_dict:
     :return:
     """
@@ -150,9 +156,15 @@ def target_extract(json_dict):
         if 'selector' in json_dict:
             return '#'.join([json_dict['full'], json_dict['selector']['value']])
         else:
-            return '#'.join([json_dict['full'], 'xywh=0,0,20,20'])
+            if fake_selector:
+                return '#'.join([json_dict['full'], 'xywh=0,0,20,20'])
+            else:
+                return json_dict['full']
     else:
-        return '#'.join([json_dict, 'xywh=0,0,20,20'])
+        if fake_selector:
+            return '#'.join([json_dict, 'xywh=0,0,20,20'])
+        else:
+            return json_dict
 
 
 def got_body(json_data, request_uri, context):
@@ -202,9 +214,8 @@ def brilleaux(anno_container):
 
     The @id of the annotation list is set to the request_url.
     """
-    SITE_ROOT = os.path.realpath(os.path.dirname(__file__))
-    json_url = os.path.join(SITE_ROOT, "context.json")
-    master_context = json.load(open(json_url))
+    site_root = os.path.realpath(os.path.dirname(__file__))
+    master_context = json.load(open(os.path.join(site_root, "context.json")))
     del (master_context['@context']['dct'])  # remove unwanted alternative dcterms 'dct' prefix
     del (master_context['@context']['dcterm'])  # unwanted alternative dcterms 'dcterm' prefix
     del (master_context['@context']['sdo'])  # unwanted alternative schema.org prefix
