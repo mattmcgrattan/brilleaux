@@ -4,7 +4,8 @@ services:
   - docker
 install:
   - echo "pre-test installs go here"
-after_success:
+script:
   - docker --version
   - docker build -t digirati/brilleaux:latest .
-
+after_success:
+  - echo "successful build!"
