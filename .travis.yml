@@ -1,0 +1,12 @@
+sudo: required
+language: generic
+services:
+  - docker
+install:
+  - echo "pre-test installs go here"
+deploy:
+  provider: script
+  script: .travis-deploy.sh
+  on:
+    branch: master
+
