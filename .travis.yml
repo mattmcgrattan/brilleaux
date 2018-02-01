@@ -9,4 +9,5 @@ script:
   - echo "run tests here!"
 after_success:
   - echo "successful build!"
+  - docker login -u "$DOCKER_USERNAME" -p "$DOCKER_PASSWORD"
   - docker push digirati/brilleaux:latest
