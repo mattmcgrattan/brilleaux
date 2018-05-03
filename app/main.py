@@ -80,7 +80,7 @@ def transform_anno(anno, anno_id):
                                       'label'])
         url = key_get(values, keys=['input',
                                     'https://annotation-studio.netlify.com/fields/linking/autocomplete',
-                                    'url'])
+                                    'url']).replace('//index', '/index')
         x = key_get(values, keys=['selector', 'x'])
         y = key_get(values, keys=['selector', 'y'])
         w = key_get(values, keys=['selector', 'width'])
