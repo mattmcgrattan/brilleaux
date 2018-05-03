@@ -1,149 +1,127 @@
 import json
 import brilleaux_settings
 import flask
-import requests
-from datetime import timedelta
-from flask import make_response, request, current_app
-from functools import update_wrapper
-from flask_cache import Cache
+from flask_cors import CORS
+from functools import reduce
+from elucidate import items_async
+from urllib.parse import urlparse
 
 
-def crossdomain(origin=None, methods=None, headers=None,
-                max_age=21600, attach_to_all=True,
-                automatic_options=True):
-    if methods is not None:
-        methods = ', '.join(sorted(x.upper() for x in methods))
-    if headers is not None and not isinstance(headers, str):
-        headers = ', '.join(x.upper() for x in headers)
-    if not isinstance(origin, str):
-        origin = ', '.join(origin)
-    if isinstance(max_age, timedelta):
-        max_age = max_age.total_seconds()
-
-    def get_methods():
-        if methods is not None:
-            return methods
-
-        options_resp = current_app.make_default_options_response()
-        return options_resp.headers['allow']
-
-    def decorator(f):
-        def wrapped_function(*args, **kwargs):
-            if automatic_options and request.method == 'OPTIONS':
-                resp = current_app.make_default_options_response()
-            else:
-                resp = make_response(f(*args, **kwargs))
-            if not attach_to_all and request.method != 'OPTIONS':
-                return resp
-
-            h = resp.headers
-
-            h['Access-Control-Allow-Origin'] = origin
-            h['Access-Control-Allow-Methods'] = get_methods()
-            h['Access-Control-Max-Age'] = str(max_age)
-            if headers is not None:
-                h['Access-Control-Allow-Headers'] = headers
-            return resp
-
-        f.provide_automatic_options = False
-        return update_wrapper(wrapped_function, f)
-
-    return decorator
-
-
-def repair_results(json_dict, request_uri):
+def key_get(dictionary, keys, default=None):
     """
-    Takes a result returned from Digirati
-    Annotation Server, which does NOT
-    display properly using the SimpleAnnotation
-    endpoint in Mirador, and makes:
+    Saves using loads of nested gets or try/except loops.
 
-    value = chars
-
-    and turns all oa:hasPurpose into:
-
-    oa:Tag
-
-    :rtype: string (Serialized JSON)
+    :param dictionary: dict
+    :param keys: keys to get
+    :param default: return this if nothing else
+    :return: value
     """
-    anno_list = {"@context": "http://iiif.io/api/presentation/2/context.json", "@type": "sc:AnnotationList",
-                 "@id": request_uri,
-                 'resources': []}
-
-    if len(json_dict) > 0:
-        for item in json_dict:
-            # ignore target-less annotations.
-            if 'resource' in item and 'on' in item:
-                resource = item['resource']
-                for res in resource:
-                    # ignore resources that are not dicts with keys
-                    # if isinstance(res, dict):
-                    if 'value' in res.keys():
-                        # IIIF Annotations use chars,
-                        # not value.
-                        res['chars'] = res['value']
-                        del res['value']
-                    if 'oa:hasPurpose' in res.keys():
-                        # IIIF Annotations don't use Purpose
-                        del res['oa:hasPurpose']
-                        res['@type'] = 'oa:Tag'
-                if isinstance(item['on'], dict):
-                    item['on'] = target_extract(item['on'])  # o
-                elif isinstance(item['on'], list):
-                        item['on'] = [target_extract(o) for o in item['on']][0]  # o_list[0]
-                else:
-                    pass
-                if 'on' in item:
-                    anno_list['resources'].append(item)
-        return json.dumps(anno_list, indent=4)
-    else:
-        return None
+    return reduce(lambda d, key: d.get(key, default) if isinstance(d, dict) else default, keys, dictionary)
 
 
-def target_extract(json_dict):
+def transform_anno(anno, anno_id):
     """
-    Extract the target and turn into a simple 'on'
-    :param json_dict:
+        Takes a result returned from Elucidate in the drafts format for Annotation Studio:
+
+    {
+        "@context": "http://www.w3.org/ns/anno.jsonld",
+        "id": "https://elucidate-pmc.dlc.services/annotation/w3c/ \
+        789b7dc83d1c2bfb5ab733ce205cdb40/220ced61-84a0-47a8-bebc-c73ec417dbe4",
+        "type": "Annotation",
+        "generator": "/capture-models/generic/linking-outer.json",
+        "body": {
+        "type": "TextualBody",
+        "format": "text/json",
+        "value": "{\"id\": \"6cedf19b-468f-46b1-bf8c-9e568c4b8a7a\", \"input\": \
+        {\"https://annotation-studio.netlify.com/fields/linking/autocomplete\": \
+        {\"label\": \"Audrey Turner (Painter)\", \
+        \"url\": \"https://ra-exhibition-pmc.dlc.services//index/exhibitors/T#audrey+turner+%28painter%29\"}}, \
+        \"selectors\": {\"https://annotation-studio.netlify.com/fields/linking/autocomplete\": \
+        {\"type\": null, \"focused\": false, \"name\": null}}, \"template\": \
+        \"/capture-models/generic/linking.json\", \"motivation\": {\"id\": \"http://www.w3.org/ns/oa#tagging\", \
+        \"label\": \"oa:tagging\", \"instance\": \"tagging\"}, \"isPublishing\": false, \"isPreviewing\": true, \
+        \"selector\": {\"type\": \"madoc:boxdraw\", \"x\": 1174, \"y\": 644, \"width\": 287, \"height\": 51, \
+        \"name\": null}, \"fingerprint\": {\"scope\": \"/capture-models/generic/linking-outer.json\", \
+        \"path\": [\"/capture-models/generic/linking.json\"], \"identity\": null, \"created\": \
+        \"2018-04-30T18:18:03.702Z\", \"lifecycle\": \"DRAFT_LIFECYCLE_NEW\", \"source\": \"elucidate\", \
+        \"creator\": \"you\"}}",
+        "purpose": "editing"
+        },
+        "target": "https://presley-pmc.dlc.services/iiif/pmctest02/Vol201/canvas/c44",
+        "motivation": "http://www.digirati.com/ns/crowds#drafting"
+    }
+
+    and return format required by the PMC/Galway viewer.
+
+    {
+            "@id": "https://mattmcgrattan.github.io/Vol208/c22/0",
+            "@type": "oa:Annotation",
+            "motivation": "oa:linking",
+            "on": "https://presley-pmc.dlc.services/iiif/pmctest02/Vol208/canvas/c22#xywh=1110,780,295,51",
+            "resource": {
+                "@id": "https://chronicle250.com/index/exhibitors/A#andrew+j.+stone+%28painter%29",
+                "label": "Andrew J. Stone (Painter)"
+            }
+        }
+
+    Example manifest:  https://pmc-viewer.netlify.com/pmc-fixture.json
+
+    Example annotation list: https://mattmcgrattan.github.io/Vol208/c2.json
+
+    :param anno:
     :return:
     """
-    if 'full' in json_dict:
-        if 'selector' in json_dict:
-            return '#'.join([json_dict['full'], json_dict['selector']['value']])
-        else:
-            return json_dict['full']
-    else:
+    try:
+        values = json.loads(anno['body']['value'])
+    except KeyError:
         return None
-
-
-def got_body(json_data, request_uri):
-    """
-    Checks to see if a paged list is returned.
-
-    If yes, grab the first page in the list,
-    get the content.
-
-    Turn the list of items into an annotation result.
-    """
-    content_dict = json_data
-    if ('first' in content_dict and 'as:items' in content_dict['first']
-            and '@list' in content_dict['first']['as:items']):
-        anno_results = content_dict['first']['as:items']['@list']
-        updated = repair_results(anno_results, request_uri)
-        if updated:
-            return updated
-        else:
-            return None
     else:
-        return None
+        label = key_get(values, keys=['input',
+                                      'https://annotation-studio.netlify.com/fields/linking/autocomplete',
+                                      'label'])
+        url = key_get(values, keys=['input',
+                                    'https://annotation-studio.netlify.com/fields/linking/autocomplete',
+                                    'url'])
+        x = key_get(values, keys=['selector', 'x'])
+        y = key_get(values, keys=['selector', 'y'])
+        w = key_get(values, keys=['selector', 'width'])
+        h = key_get(values, keys=['selector', 'height'])
+        xywh = ','.join([str(f) for f in [x, y, w, h]])
+        on = anno['target'] + '#' + xywh
+        result = {'@id': anno_id, '@type': 'oa:Annotation', 'motivation': 'oa:linking', 'on': on,
+                  'resource': {'@id': url, 'label': label}}
+        return result
+    finally:
+        pass
+
+
+def transform_results(elucidate_iri, request_uri):
+    """
+    Package transformed results as an annotation list.
+    """
+    print('Elucidate', elucidate_iri)
+    anno_list = {"@context": "http://iiif.io/api/presentation/2/context.json", "@type": "sc:AnnotationList",
+                 "@id": request_uri,
+                 'resources': [x for x in transform_annos(elucidate_iri, base=request_uri)]}
+    return anno_list
+
+
+def transform_annos(elucidate_uri, base):
+    """
+    Asynchronously grab annotations from Elucidate, and return in transformed format.
+
+    :returns Annotations in PMC viewer format.
+    """
+    annotations = items_async(elucidate_uri)
+    for count, annotation in enumerate(annotations):
+        yield transform_anno(annotation, anno_id=''.join([base, str(count)]))
 
 
 app = flask.Flask(__name__)
-cache = Cache(app, config={'CACHE_TYPE': 'filesystem', 'CACHE_DIR': './'})
+CORS(app)
 
 
 @app.route('/annotationlist/<path:anno_container>', methods=['GET'])
-@crossdomain(origin='*')
-@cache.cached(timeout=20)  # 20 second caching.
 def brilleaux(anno_container):
     """
     Flask app.
@@ -156,51 +134,30 @@ def brilleaux(anno_container):
     Requests the annotation list from Elucidate, using the IIIF context.
 
     Unpacks the annotation list, and reformats the JSON to be in the
-    IIIF Presentation API annotation list format.
+    annotation list format required by the PMC/Galway viewer.
 
     Returns JSON-LD for an annotation list.
 
     The @id of the annotation list is set to the request_url.
     """
     if flask.request.method == 'GET':
-        # e.g. anno_server = 'https://elucidate.dlcs-ida.org/annotation/w3c/'
-        if brilleaux_settings.ELUCIDATE_URI:
-            anno_server = brilleaux_settings.ELUCIDATE_URI
-        else:
-            anno_server = 'https://elucidate.dlcs-ida.org/annotation/w3c/'
-        request_uri = ''.join([anno_server, anno_container])
+        anno_server = 'https://elucidate-pmc.dlc.services/annotation/w3c/'
+        elucidate = ''.join([anno_server, anno_container])
+        flask.Response(elucidate)
         # make sure URL ends in a /
-        if request_uri[-1] != '/':
-            request_uri += "/"
+        if elucidate[-1] != '/':
+            elucidate += "/"
             fl_req_uri = flask.request.url + "/"
         else:
             fl_req_uri = flask.request.url
-        r = requests.get(request_uri, headers={
-            'Accept': 'Application/ld+json; profile="http://iiif.io/api/presentation/2/context.json"'})
-        print('Request URI')
-        print(request_uri)
-        print("Elucidate Status Code")
-        print(r.status_code)
-        if r.status_code == requests.codes.ok:
-            if r.json():
-                print(r.json())
-                # noinspection PyBroadException
-                try:
-                    content = got_body(r.json(), fl_req_uri)
-                except:
-                    flask.abort(500)
-                    content = None
-                if content:
-                    resp = flask.Response(content, headers={'Content-Type': 'application/ld+json;charset=UTF-8'})
-                    return resp
-                else:
-                    flask.abort(500)
-            else:
-                flask.abort(404)
+        annotationlist = transform_results(elucidate_iri=elucidate,
+                                           request_uri=fl_req_uri)
+        if annotationlist:
+            resp = flask.Response(json.dumps(annotationlist, indent=2),
+                                  headers={'Content-Type': 'application/ld+json;charset=UTF-8'})
+            return resp
         else:
-            flask.abort(r.status_code)
-    else:
-        flask.abort(405)
+            flask.abort('404')
 
 
 if __name__ == "__main__":
