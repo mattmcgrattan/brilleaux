@@ -98,7 +98,6 @@ def transform_results(elucidate_iri, request_uri):
     """
     Package transformed results as an annotation list.
     """
-    print('Elucidate', elucidate_iri)
     anno_list = {"@context": "http://iiif.io/api/presentation/2/context.json", "@type": "sc:AnnotationList",
                  "@id": request_uri,
                  'resources': [x for x in transform_annos(elucidate_iri, base=request_uri)]}
