@@ -86,7 +86,7 @@ def transform_anno(anno, anno_id):
         w = key_get(values, keys=['selector', 'width'])
         h = key_get(values, keys=['selector', 'height'])
         xywh = ','.join([str(f) for f in [x, y, w, h]])
-        on = anno['target'] + '#' + xywh
+        on = anno['target'] + '#xywh=' + xywh
         result = {'@id': anno_id, '@type': 'oa:Annotation', 'motivation': 'oa:linking', 'on': on,
                   'resource': {'@id': url, 'label': label}}
         return result
