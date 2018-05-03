@@ -1,9 +1,10 @@
 import json
+from functools import reduce
+
 import flask
 from flask_cors import CORS
-from functools import reduce
+
 from elucidate import items_async
-from urllib.parse import urlparse
 
 
 def key_get(dictionary, keys, default=None):
@@ -80,7 +81,7 @@ def transform_anno(anno, anno_id):
                                       'label'])
         url = key_get(values, keys=['input',
                                     'https://annotation-studio.netlify.com/fields/linking/autocomplete',
-                                    'url']).replace('//index', '/index')
+                                    'url']).replace('//index', '/index')  # quick hack to fix double //index uris
         x = key_get(values, keys=['selector', 'x'])
         y = key_get(values, keys=['selector', 'y'])
         w = key_get(values, keys=['selector', 'width'])
