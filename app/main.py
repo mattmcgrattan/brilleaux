@@ -160,4 +160,4 @@ def brilleaux(anno_container):
 
 
 if __name__ == "__main__":
-    app.run(threaded=True, debug=True, port=5000, host='0.0.0.0')
+    app.run(threaded=True, debug=True, port=3000, host='0.0.0.0')
