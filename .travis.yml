@@ -1,0 +1,13 @@
+sudo: required
+language: generic
+services:
+  - docker
+before_install:
+  - docker --version
+  - docker build -t digirati/brilleaux:latest .
+script:
+  - echo "run tests here!"
+after_success:
+  - echo "successful build!"
+  - docker login -u "$DOCKER_USERNAME" -p "$DOCKER_PASSWORD"
+  - docker push digirati/brilleaux:latest
