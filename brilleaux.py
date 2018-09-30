@@ -8,9 +8,10 @@ from flask_caching import Cache
 from flask_cors import CORS
 import logging
 import sys
+from typing import Optional
 
 
-def to_rdfa(resource, con_txt, rdfa=True):
+def to_rdfa(resource: dict, con_txt: dict, rdfa: bool=True) -> str:
     if '@type' in resource:
         if resource['@type'] == 'dctypes:Dataset':
             # print(type(resource['value']))
@@ -34,7 +35,7 @@ def to_rdfa(resource, con_txt, rdfa=True):
             return ''.join(rows)
 
 
-def repair_results(json_dict, request_uri, cont):
+def repair_results(json_dict: dict, request_uri: str, cont: dict) -> Optional[str]:
     """
     Takes a result returned from Digirati
     Annotation Server, which does NOT
@@ -86,7 +87,7 @@ def repair_results(json_dict, request_uri, cont):
                                 if 'value' in res.keys():
                                     if '@type' in res:
                                         if res['@type'] == 'dctypes:Dataset':
-                                            res = {'chars': to_rdfa(resource, con_txt=cont, rdfa=True),
+                                            res = {'chars': to_rdfa(res, con_txt=cont, rdfa=True),
                                                    'format': 'application/html'
                                                    }
                                         else:
@@ -118,7 +119,7 @@ def repair_results(json_dict, request_uri, cont):
         return None
 
 
-def target_extract(json_dict, fake_selector=False):
+def target_extract(json_dict: dict, fake_selector: bool=False) -> Optional[str]:
     """
     Extract the target and turn into a simple 'on'
     :param fake_selector:
@@ -137,10 +138,10 @@ def target_extract(json_dict, fake_selector=False):
         if fake_selector:
             return '#'.join([json_dict, 'xywh=0,0,50,50'])
         else:
-            return json_dict
+            return
 
 
-def got_body(json_data, request_uri, context):
+def got_body(json_data: dict, request_uri: str, context: dict) -> Optional[str]:
     """
     Checks to see if a paged list is returned.
 
@@ -169,7 +170,7 @@ cache = Cache(app, config={"CACHE_TYPE": "filesystem", "CACHE_DIR": "./"})
 
 @app.route("/annotationlist/<path:anno_container>", methods=["GET"])
 @cache.cached(timeout=120)  # 20 second caching.
-def brilleaux(anno_container):
+def brilleaux(anno_container: str):
     """
     Flask app.
 
