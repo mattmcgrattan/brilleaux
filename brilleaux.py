@@ -1,7 +1,6 @@
 import json
 import brilleaux_settings
 import flask
-import requests
 from pyld import jsonld
 import os
 from flask_caching import Cache
@@ -9,6 +8,7 @@ from flask_cors import CORS
 import logging
 import sys
 from typing import Optional
+from async_elucidate import async_items_by_container
 
 
 def to_rdfa(resource: dict, con_txt: dict, rdfa: bool = True) -> str:
@@ -51,7 +51,7 @@ def to_rdfa(resource: dict, con_txt: dict, rdfa: bool = True) -> str:
             return "".join(rows)
 
 
-def repair_results(json_dict: dict, request_uri: str, cont: dict) -> Optional[str]:
+def repair_results(json_dict: list, request_uri: str, cont: dict) -> Optional[str]:
     """
     Takes a result returned from Digirati
     Annotation Server, which does NOT
@@ -72,40 +72,39 @@ def repair_results(json_dict: dict, request_uri: str, cont: dict) -> Optional[st
         "@id": request_uri,
         "resources": [],
     }
-
     if len(json_dict) > 0:
         for item in json_dict:
             # ignore target-less annotations.
-            if "resource" in item:
-                resource = item["resource"]
+            if "body" in item:
+                resource = item["body"]
                 # convert motivations to Mirador format.
                 if "motivation" in item:
-                    # del(item['motivation'])
                     if "@id" in item["motivation"]:
                         item["motivation"] = item["motivation"]["@id"]
-                if "as:generator" in item:
-                    del (item["as:generator"])
+                if "generator" in item:
+                    del (item["generator"])
                 if "label" in item:
                     del (item["label"])
-                if "on" in item:
+                if "target" in item:
                     if isinstance(resource, list):
                         for res in resource:
                             if isinstance(res, dict):
-
-                                if "oa:hasPurpose" in res.keys():
+                                if "generator" in res.keys():
+                                    del res["generator"]
+                                if "purpose" in res.keys():
                                     # IIIF Annotations don't use Purpose
-                                    del res["oa:hasPurpose"]
+                                    del res["purpose"]
                                     res["@type"] = "oa:Tag"
-                                if "full" in res.keys():
+                                if "source" in res.keys():
                                     res["chars"] = (
                                         '<a href="'
-                                        + res["full"]
+                                        + res["source"]
                                         + '">'
-                                        + res["full"]
+                                        + res["source"]
                                         + "</a>"
                                     )
-                                    del (res["full"])
-                                    del (res["@type"])
+                                    del (res["source"])
+                                    del (res["type"])
                                 if "value" in res.keys():
                                     if "@type" in res:
                                         if res["@type"] == "dctypes:Dataset":
@@ -120,14 +119,16 @@ def repair_results(json_dict: dict, request_uri: str, cont: dict) -> Optional[st
                                     else:
                                         res["chars"] = res["value"]
                                     del res["value"]
-                        if isinstance(item["on"], dict):
-                            item["on"] = target_extract(item["on"])  # o
-                        elif isinstance(item["on"], list):
-                            item["on"] = [target_extract(o) for o in item["on"]][
+                                if "type" in res.keys():
+                                    del res["type"]
+                        if isinstance(item["target"], dict):
+                            item["on"] = target_extract(item["target"])  # o
+                        elif isinstance(item["target"], list):
+                            item["on"] = [target_extract(o) for o in item["target"]][
                                 0
                             ]  # o_list[0]
                         else:
-                            item["on"] = target_extract(item["on"])
+                            item["on"] = target_extract(item["target"])
                     else:
                         if "@type" in resource:
                             if resource["@type"] == "dctypes:Dataset":
@@ -140,8 +141,9 @@ def repair_results(json_dict: dict, request_uri: str, cont: dict) -> Optional[st
                                     }
                                 ]
                                 item["on"] = target_extract(
-                                    item["on"], fake_selector=True
+                                    item["target"], fake_selector=True
                                 )
+                del item["target"]
                 if "on" in item:
                     anno_list["resources"].append(item)
                 else:
@@ -154,18 +156,18 @@ def repair_results(json_dict: dict, request_uri: str, cont: dict) -> Optional[st
 def target_extract(json_dict: dict, fake_selector: bool = False) -> Optional[str]:
     """
     Extract the target and turn into a simple 'on'
-    :param fake_selector:
-    :param json_dict:
-    :return:
+    :param fake_selector: if True, create a top left 50px box and associate with that.
+    :param json_dict: annotation content as dictionary
+    :return: string for the target URI
     """
-    if "full" in json_dict:
+    if "source" in json_dict:
         if "selector" in json_dict:
-            return "#".join([json_dict["full"], json_dict["selector"]["value"]])
+            return "#".join([json_dict["source"], json_dict["selector"]["value"]])
         else:
             if fake_selector:
-                return "#".join([json_dict["full"], "xywh=0,0,50,50"])
+                return "#".join([json_dict["source"], "xywh=0,0,50,50"])
             else:
-                return json_dict["full"]
+                return json_dict["source"]
     else:
         if fake_selector:
             return "#".join([json_dict, "xywh=0,0,50,50"])
@@ -209,11 +211,19 @@ def get_local_context(prefixes: tuple = ("dct", "dcterm", "sdo", "sorg")) -> dic
     return context
 
 
+def get_iiif_context() -> dict:
+    site_root = os.path.realpath(os.path.dirname(__file__))
+    context = json.load(open(os.path.join(site_root, "iiif_context.json")))
+    return context
+
+
 app = flask.Flask(__name__)
-app.config['context'] = get_local_context()
+app.config["context"] = get_local_context()
+app.config["iiif_context"] = get_iiif_context()
 CORS(app)
-cache = Cache(app, config={"CACHE_TYPE": "filesystem", "CACHE_DIR": "./",
-                           "CACHE_THRESHOLD": 500})
+cache = Cache(
+    app, config={"CACHE_TYPE": "filesystem", "CACHE_DIR": "./", "CACHE_THRESHOLD": 500}
+)
 
 
 @app.route("/annotationlist/<path:anno_container>", methods=["GET"])
@@ -239,50 +249,60 @@ def brilleaux(anno_container: str):
     if brilleaux_settings.ELUCIDATE_URI:
         anno_server = brilleaux_settings.ELUCIDATE_URI
     else:
-        anno_server = "https://elucidate.dlcs-ida.org/annotation/w3c/"
+        anno_server = "https://elucidate.dlcs-ida.org/"
     if flask.request.method == "GET":
-        request_uri = "".join([anno_server, anno_container])
+        request_uri = "".join([anno_server, "annotation/w3c/", anno_container])
         # make sure URL ends in a /
         if request_uri[-1] != "/":
             request_uri += "/"
-            fl_req_uri = flask.request.url + "/"
-        else:
-            fl_req_uri = flask.request.url
-        r = requests.get(
-            request_uri,
-            headers={
+        annotations = async_items_by_container(
+            elucidate=anno_server,
+            container=anno_container,
+            header_dict={
                 "Accept": "Application/ld+json; profile="
-                + '"http://iiif.io/api/presentation/2/context.json"'
+                + '"http://www.w3.org/ns/anno.jsonld"'
             },
         )
-        logging.debug("Request URI: %s", request_uri)
-        logging.debug("Elucidate Status Code: %s", r.status_code)
-        if r.status_code == requests.codes.ok:
-            if r.json():
-                content = None
-                # noinspection PyBroadException
-                try:
-                    content = got_body(r.json(), fl_req_uri, context=app.config['context'])
-                except:
-                    logging.error("Could not parse the JSON")
-                    flask.abort(500)
-                if content:
-                    resp = flask.Response(
-                        content,
-                        headers={"Content-Type": "application/ld+json;charset=UTF-8"},
-                    )
-                    return resp
-                else:
-                    flask.abort(500)
-            else:
-                logging.error("No usable data returned from Elucidate")
-                flask.abort(404)
+        content = repair_results(
+            list(annotations), request_uri=request_uri, cont=app.config["context"]
+        )
+        if content:
+            resp = flask.Response(
+                content, headers={"Content-Type": "application/ld+json;charset=UTF-8"}
+            )
+            return resp
         else:
-            logging.error("Elucidate returned an error. Status code: %s", r.status_code)
-            flask.abort(r.status_code)
-    else:
-        logging.error("Brilleaux does not support this method.")
-        flask.abort(405)
+            flask.abort(404)
+        # logging.debug("Request URI: %s", request_uri)
+        # logging.debug("Elucidate Status Code: %s", r.status_code)
+        # if r.status_code == requests.codes.ok:
+        #     if r.json():
+        #         content = None
+        #         # noinspection PyBroadException
+        #         try:
+        #             content = got_body(
+        #                 r.json(), fl_req_uri, context=app.config["context"]
+        #             )
+        #         except:
+        #             logging.error("Could not parse the JSON")
+        #             flask.abort(500)
+        #         if content:
+        #             resp = flask.Response(
+        #                 content,
+        #                 headers={"Content-Type": "application/ld+json;charset=UTF-8"},
+        #             )
+        #             return resp
+        #         else:
+        #             flask.abort(500)
+    #         else:
+    #             logging.error("No usable data returned from Elucidate")
+    #             flask.abort(404)
+    #     else:
+    #         logging.error("Elucidate returned an error. Status code: %s", r.status_code)
+    #         flask.abort(r.status_code)
+    # else:
+    #     logging.error("Brilleaux does not support this method.")
+    #     flask.abort(405)
 
 
 if __name__ == "__main__":
