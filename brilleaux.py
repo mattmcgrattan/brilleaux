@@ -232,9 +232,8 @@ def brilleaux(anno_container: str):
         master_context["@context"]["dcterm"]
     )  # unwanted alternative dcterms 'dcterm' prefix
     del (master_context["@context"]["sdo"])  # unwanted alternative schema.org prefix
-    del (master_context["@context"]["sorg"])
+    del (master_context["@context"]["sorg"]) # unwanted alternative schema.org prefix
     if flask.request.method == "GET":
-        # e.g. anno_server = 'https://elucidate.dlcs-ida.org/annotation/w3c/'
         if brilleaux_settings.ELUCIDATE_URI:
             anno_server = brilleaux_settings.ELUCIDATE_URI
         else:
@@ -257,6 +256,7 @@ def brilleaux(anno_container: str):
         logging.debug("Elucidate Status Code: %s", r.status_code)
         if r.status_code == requests.codes.ok:
             if r.json():
+                content = None
                 logging.debug("Elucidate response: %s", r.json())
                 # noinspection PyBroadException
                 try:
@@ -264,7 +264,6 @@ def brilleaux(anno_container: str):
                 except:
                     logging.error("Could not parse the JSON")
                     flask.abort(500)
-                    content = None
                 if content:
                     resp = flask.Response(
                         content,
