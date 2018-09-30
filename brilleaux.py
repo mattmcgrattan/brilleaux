@@ -198,13 +198,26 @@ def got_body(json_data: dict, request_uri: str, context: dict) -> Optional[str]:
         return None
 
 
+def get_local_context(prefixes: tuple = ("dct", "dcterm", "sdo", "sorg")) -> dict:
+    site_root = os.path.realpath(os.path.dirname(__file__))
+    context = json.load(open(os.path.join(site_root, "context.json")))
+    for prefix in prefixes:
+        try:
+            del context["@context"][prefix]
+        except KeyError:
+            pass
+    return context
+
+
 app = flask.Flask(__name__)
+app.config['context'] = get_local_context()
 CORS(app)
-cache = Cache(app, config={"CACHE_TYPE": "filesystem", "CACHE_DIR": "./"})
+cache = Cache(app, config={"CACHE_TYPE": "filesystem", "CACHE_DIR": "./",
+                           "CACHE_THRESHOLD": 500})
 
 
 @app.route("/annotationlist/<path:anno_container>", methods=["GET"])
-@cache.cached(timeout=120)  # 20 second caching.
+@cache.cached(timeout=120)  # Cache Flask request to save repeated hits to Elucidate.
 def brilleaux(anno_container: str):
     """
     Flask app.
@@ -223,21 +236,11 @@ def brilleaux(anno_container: str):
 
     The @id of the annotation list is set to the request_url.
     """
-    site_root = os.path.realpath(os.path.dirname(__file__))
-    master_context = json.load(open(os.path.join(site_root, "context.json")))
-    del (
-        master_context["@context"]["dct"]
-    )  # remove unwanted alternative dcterms 'dct' prefix
-    del (
-        master_context["@context"]["dcterm"]
-    )  # unwanted alternative dcterms 'dcterm' prefix
-    del (master_context["@context"]["sdo"])  # unwanted alternative schema.org prefix
-    del (master_context["@context"]["sorg"]) # unwanted alternative schema.org prefix
+    if brilleaux_settings.ELUCIDATE_URI:
+        anno_server = brilleaux_settings.ELUCIDATE_URI
+    else:
+        anno_server = "https://elucidate.dlcs-ida.org/annotation/w3c/"
     if flask.request.method == "GET":
-        if brilleaux_settings.ELUCIDATE_URI:
-            anno_server = brilleaux_settings.ELUCIDATE_URI
-        else:
-            anno_server = "https://elucidate.dlcs-ida.org/annotation/w3c/"
         request_uri = "".join([anno_server, anno_container])
         # make sure URL ends in a /
         if request_uri[-1] != "/":
@@ -257,10 +260,9 @@ def brilleaux(anno_container: str):
         if r.status_code == requests.codes.ok:
             if r.json():
                 content = None
-                logging.debug("Elucidate response: %s", r.json())
                 # noinspection PyBroadException
                 try:
-                    content = got_body(r.json(), fl_req_uri, context=master_context)
+                    content = got_body(r.json(), fl_req_uri, context=app.config['context'])
                 except:
                     logging.error("Could not parse the JSON")
                     flask.abort(500)
@@ -276,7 +278,7 @@ def brilleaux(anno_container: str):
                 logging.error("No usable data returned from Elucidate")
                 flask.abort(404)
         else:
-            logging.error("Elucidate returned an error.")
+            logging.error("Elucidate returned an error. Status code: %s", r.status_code)
             flask.abort(r.status_code)
     else:
         logging.error("Brilleaux does not support this method.")
@@ -286,7 +288,7 @@ def brilleaux(anno_container: str):
 if __name__ == "__main__":
     logging.basicConfig(
         stream=sys.stdout,
-        level=logging.ERROR,
+        level=logging.DEBUG,
         format="%(asctime)s,%(msecs)d %(name)s %(levelname)s %(message)s",
     )
     app.run(threaded=True, debug=True, port=5000, host="0.0.0.0")
