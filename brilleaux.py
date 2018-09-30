@@ -6,9 +6,10 @@ from flask_caching import Cache
 from flask_cors import CORS
 import logging
 import sys
+from typing import Optional
 
 
-def repair_results(json_dict, request_uri):
+def repair_results(json_dict: dict, request_uri: str) -> Optional[str]:
     """
     Takes a result returned from Digirati
     Annotation Server, which does NOT
@@ -60,7 +61,7 @@ def repair_results(json_dict, request_uri):
         return None
 
 
-def target_extract(json_dict):
+def target_extract(json_dict: dict) -> Optional[str]:
     """
     Extract the target and turn into a simple 'on'
     :param json_dict:
@@ -75,7 +76,7 @@ def target_extract(json_dict):
         return None
 
 
-def got_body(json_data, request_uri):
+def got_body(json_data: dict, request_uri: str) -> Optional[str]:
     """
     Checks to see if a paged list is returned.
 
@@ -107,7 +108,7 @@ cache = Cache(app, config={"CACHE_TYPE": "filesystem", "CACHE_DIR": "./"})
 
 @app.route("/annotationlist/<path:anno_container>", methods=["GET"])
 @cache.cached(timeout=120)  # 20 second caching.
-def brilleaux(anno_container):
+def brilleaux(anno_container: str):
     """
     Flask app.
 
