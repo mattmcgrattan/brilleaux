@@ -90,10 +90,7 @@ def repair_results(json_dict: list, request_uri: str, cont: dict) -> Optional[st
                         new = []
                         for res in resource:
                             if isinstance(res, dict):
-                                if "purpose" in res.keys():
-                                    # IIIF Annotations don't use Purpose
-                                    del res["purpose"]
-                                    res["@type"] = "oa:Tag"
+                                res["@type"] = "oa:Tag"
                                 if "source" in res.keys():
                                     res["chars"] = (
                                         '<a href="'
@@ -116,7 +113,7 @@ def repair_results(json_dict: list, request_uri: str, cont: dict) -> Optional[st
                                     else:
                                         res["chars"] = res["value"]
                                 new.append(remove_keys(d=res, keys=["value", "type", "generator",
-                                                                    "source"]))
+                                                                    "source", "purpose"]))
                         if isinstance(item["target"], dict):
                             item["on"] = target_extract(item["target"])  # o
                         elif isinstance(item["target"], list):
