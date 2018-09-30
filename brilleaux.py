@@ -2,55 +2,12 @@ import json
 import brilleaux_settings
 import flask
 import requests
-from datetime import timedelta
-from flask import make_response, request, current_app
-from functools import update_wrapper
-from flask_cache import Cache
 from pyld import jsonld
 import os
-
-
-def crossdomain(origin=None, methods=None, headers=None,
-                max_age=21600, attach_to_all=True,
-                automatic_options=True):
-    if methods is not None:
-        methods = ', '.join(sorted(x.upper() for x in methods))
-    if headers is not None and not isinstance(headers, str):
-        headers = ', '.join(x.upper() for x in headers)
-    if not isinstance(origin, str):
-        origin = ', '.join(origin)
-    if isinstance(max_age, timedelta):
-        max_age = max_age.total_seconds()
-
-    def get_methods():
-        if methods is not None:
-            return methods
-
-        options_resp = current_app.make_default_options_response()
-        return options_resp.headers['allow']
-
-    def decorator(f):
-        def wrapped_function(*args, **kwargs):
-            if automatic_options and request.method == 'OPTIONS':
-                resp = current_app.make_default_options_response()
-            else:
-                resp = make_response(f(*args, **kwargs))
-            if not attach_to_all and request.method != 'OPTIONS':
-                return resp
-
-            h = resp.headers
-
-            h['Access-Control-Allow-Origin'] = origin
-            h['Access-Control-Allow-Methods'] = get_methods()
-            h['Access-Control-Max-Age'] = str(max_age)
-            if headers is not None:
-                h['Access-Control-Allow-Headers'] = headers
-            return resp
-
-        f.provide_automatic_options = False
-        return update_wrapper(wrapped_function, f)
-
-    return decorator
+from flask_caching import Cache
+from flask_cors import CORS
+import logging
+import sys
 
 
 def to_rdfa(resource, con_txt, rdfa=True):
@@ -92,9 +49,12 @@ def repair_results(json_dict, request_uri, cont):
 
     :rtype: string (Serialized JSON)
     """
-    anno_list = {"@context": "http://iiif.io/api/presentation/2/context.json", "@type": "sc:AnnotationList",
-                 "@id": request_uri,
-                 'resources': []}
+    anno_list = {
+        "@context": "http://iiif.io/api/presentation/2/context.json",
+        "@type": "sc:AnnotationList",
+        "@id": request_uri,
+        "resources": [],
+    }
 
     if len(json_dict) > 0:
         for item in json_dict:
@@ -165,9 +125,9 @@ def target_extract(json_dict, fake_selector=False):
     :param json_dict:
     :return:
     """
-    if 'full' in json_dict:
-        if 'selector' in json_dict:
-            return '#'.join([json_dict['full'], json_dict['selector']['value']])
+    if "full" in json_dict:
+        if "selector" in json_dict:
+            return "#".join([json_dict["full"], json_dict["selector"]["value"]])
         else:
             if fake_selector:
                 return '#'.join([json_dict['full'], 'xywh=0,0,50,50'])
@@ -203,12 +163,12 @@ def got_body(json_data, request_uri, context):
 
 
 app = flask.Flask(__name__)
-cache = Cache(app, config={'CACHE_TYPE': 'filesystem', 'CACHE_DIR': './'})
+CORS(app)
+cache = Cache(app, config={"CACHE_TYPE": "filesystem", "CACHE_DIR": "./"})
 
 
-@app.route('/annotationlist/<path:anno_container>', methods=['GET'])
-@crossdomain(origin='*')
-@cache.cached(timeout=20)  # 20 second caching.
+@app.route("/annotationlist/<path:anno_container>", methods=["GET"])
+@cache.cached(timeout=120)  # 20 second caching.
 def brilleaux(anno_container):
     """
     Flask app.
@@ -238,40 +198,56 @@ def brilleaux(anno_container):
         if brilleaux_settings.ELUCIDATE_URI:
             anno_server = brilleaux_settings.ELUCIDATE_URI
         else:
-            anno_server = 'https://elucidate.dlcs-ida.org/annotation/w3c/'
-        request_uri = ''.join([anno_server, anno_container])
+            anno_server = "https://elucidate.dlcs-ida.org/annotation/w3c/"
+        request_uri = "".join([anno_server, anno_container])
         # make sure URL ends in a /
-        if request_uri[-1] != '/':
+        if request_uri[-1] != "/":
             request_uri += "/"
             fl_req_uri = flask.request.url + "/"
         else:
             fl_req_uri = flask.request.url
-        r = requests.get(request_uri, headers={
-            'Accept': 'Application/ld+json; profile="http://iiif.io/api/presentation/2/context.json"'})
-        print('Request URI')
-        print(request_uri)
-        print("Elucidate Status Code")
-        print(r.status_code)
+        r = requests.get(
+            request_uri,
+            headers={
+                "Accept": 'Application/ld+json; profile=' +
+                          '"http://iiif.io/api/presentation/2/context.json"'
+            },
+        )
+        logging.debug("Request URI: %s", request_uri)
+        logging.debug("Elucidate Status Code: %s", r.status_code)
         if r.status_code == requests.codes.ok:
             if r.json():
+                logging.debug("Elucidate response: %s", r.json())
                 # noinspection PyBroadException
                 try:
                     content = got_body(r.json(), fl_req_uri, context=master_context)
                 except:
+                    logging.error('Could not parse the JSON')
                     flask.abort(500)
                     content = None
                 if content:
-                    resp = flask.Response(content, headers={'Content-Type': 'application/ld+json;charset=UTF-8'})
+                    resp = flask.Response(
+                        content,
+                        headers={"Content-Type": "application/ld+json;charset=UTF-8"},
+                    )
                     return resp
                 else:
                     flask.abort(500)
             else:
+                logging.error('No usable data returned from Elucidate')
                 flask.abort(404)
         else:
+            logging.error('Elucidate returned an error.')
             flask.abort(r.status_code)
     else:
+        logging.error('Brilleaux does not support this method.')
         flask.abort(405)
 
 
 if __name__ == "__main__":
-    app.run(threaded=True, debug=True, port=5000, host='0.0.0.0')
+    logging.basicConfig(
+        stream=sys.stdout,
+        level=logging.ERROR,
+        format="%(asctime)s,%(msecs)d %(name)s %(levelname)s %(message)s",
+    )
+    app.run(threaded=True, debug=True, port=5000, host="0.0.0.0")
