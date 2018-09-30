@@ -11,6 +11,10 @@ from typing import Optional
 from async_elucidate import async_items_by_container
 
 
+def remove_keys(d, keys):
+    return {k: v for k, v in d.items() if k in (set(d.keys()) - set(keys))}
+
+
 def to_rdfa(resource: dict, con_txt: dict, rdfa: bool = True) -> str:
     if "@type" in resource:
         if resource["@type"] == "dctypes:Dataset":
@@ -72,7 +76,7 @@ def repair_results(json_dict: list, request_uri: str, cont: dict) -> Optional[st
         "@id": request_uri,
         "resources": [],
     }
-    if len(json_dict) > 0:
+    if json_dict:
         for item in json_dict:
             # ignore target-less annotations.
             if "body" in item:
@@ -81,16 +85,11 @@ def repair_results(json_dict: list, request_uri: str, cont: dict) -> Optional[st
                 if "motivation" in item:
                     if "@id" in item["motivation"]:
                         item["motivation"] = item["motivation"]["@id"]
-                if "generator" in item:
-                    del (item["generator"])
-                if "label" in item:
-                    del (item["label"])
                 if "target" in item:
                     if isinstance(resource, list):
+                        new = []
                         for res in resource:
                             if isinstance(res, dict):
-                                if "generator" in res.keys():
-                                    del res["generator"]
                                 if "purpose" in res.keys():
                                     # IIIF Annotations don't use Purpose
                                     del res["purpose"]
@@ -103,8 +102,6 @@ def repair_results(json_dict: list, request_uri: str, cont: dict) -> Optional[st
                                         + res["source"]
                                         + "</a>"
                                     )
-                                    del (res["source"])
-                                    del (res["type"])
                                 if "value" in res.keys():
                                     if "@type" in res:
                                         if res["@type"] == "dctypes:Dataset":
@@ -118,17 +115,15 @@ def repair_results(json_dict: list, request_uri: str, cont: dict) -> Optional[st
                                             res["chars"] = res["value"]
                                     else:
                                         res["chars"] = res["value"]
-                                    del res["value"]
-                                if "type" in res.keys():
-                                    del res["type"]
+                                new.append(remove_keys(d=res, keys=["value", "type", "generator",
+                                                                    "source"]))
                         if isinstance(item["target"], dict):
                             item["on"] = target_extract(item["target"])  # o
                         elif isinstance(item["target"], list):
-                            item["on"] = [target_extract(o) for o in item["target"]][
-                                0
-                            ]  # o_list[0]
+                            item["on"] = [target_extract(o) for o in item["target"]][0]  # o_list[0]
                         else:
                             item["on"] = target_extract(item["target"])
+                        item["body"] = new
                     else:
                         if "@type" in resource:
                             if resource["@type"] == "dctypes:Dataset":
@@ -143,7 +138,7 @@ def repair_results(json_dict: list, request_uri: str, cont: dict) -> Optional[st
                                 item["on"] = target_extract(
                                     item["target"], fake_selector=True
                                 )
-                del item["target"]
+                item = remove_keys(d=item, keys=["generator", "label", "target"])
                 if "on" in item:
                     anno_list["resources"].append(item)
                 else:
