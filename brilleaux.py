@@ -11,28 +11,44 @@ import sys
 from typing import Optional
 
 
-def to_rdfa(resource: dict, con_txt: dict, rdfa: bool=True) -> str:
-    if '@type' in resource:
-        if resource['@type'] == 'dctypes:Dataset':
+def to_rdfa(resource: dict, con_txt: dict, rdfa: bool = True) -> str:
+    if "@type" in resource:
+        if resource["@type"] == "dctypes:Dataset":
             # print(type(resource['value']))
-            expanded = jsonld.expand(json.loads(resource['value']))[0]
-            expanded['@context'] = con_txt
+            expanded = jsonld.expand(json.loads(resource["value"]))[0]
+            expanded["@context"] = con_txt
             e = jsonld.expand(expanded)
             rows = []
             for f in e:
                 for k, v in f.items():
                     i = jsonld.compact({k: [x for x in v]}, ctx=con_txt)
-                    del (i['@context'])
+                    del (i["@context"])
                     if rdfa:
-                        row = ''.join(
-                            ['<p><strong><a href="', str(k),'">', str([z for z, _ in i.items()][0]).split(':')[1].title(), '</a></strong>: <span property="',
-                             str(k), '">', str('; '.join([t['@value'] for t in v])), '</span></p>'])
+                        row = "".join(
+                            [
+                                '<p><strong><a href="',
+                                str(k),
+                                '">',
+                                str([z for z, _ in i.items()][0]).split(":")[1].title(),
+                                '</a></strong>: <span property="',
+                                str(k),
+                                '">',
+                                str("; ".join([t["@value"] for t in v])),
+                                "</span></p>",
+                            ]
+                        )
                         rows.append(row)
                     else:
-                        row = ''.join([str([z for z, _ in i.items()][0]), ': ',
-                                       str('; '.join([t['@value'] for t in v])), ';<br>'])
+                        row = "".join(
+                            [
+                                str([z for z, _ in i.items()][0]),
+                                ": ",
+                                str("; ".join([t["@value"] for t in v])),
+                                ";<br>",
+                            ]
+                        )
                         rows.append(row)
-            return ''.join(rows)
+            return "".join(rows)
 
 
 def repair_results(json_dict: dict, request_uri: str, cont: dict) -> Optional[str]:
@@ -60,58 +76,74 @@ def repair_results(json_dict: dict, request_uri: str, cont: dict) -> Optional[st
     if len(json_dict) > 0:
         for item in json_dict:
             # ignore target-less annotations.
-            if 'resource' in item:
-                resource = item['resource']
+            if "resource" in item:
+                resource = item["resource"]
                 # convert motivations to Mirador format.
-                if 'motivation' in item:
+                if "motivation" in item:
                     # del(item['motivation'])
-                    if '@id' in item['motivation']:
-                        item['motivation'] = item['motivation']['@id']
-                if 'as:generator' in item:
-                    del (item['as:generator'])
-                if 'label' in item:
-                    del (item['label'])
-                if 'on' in item:
+                    if "@id" in item["motivation"]:
+                        item["motivation"] = item["motivation"]["@id"]
+                if "as:generator" in item:
+                    del (item["as:generator"])
+                if "label" in item:
+                    del (item["label"])
+                if "on" in item:
                     if isinstance(resource, list):
                         for res in resource:
                             if isinstance(res, dict):
 
-                                if 'oa:hasPurpose' in res.keys():
+                                if "oa:hasPurpose" in res.keys():
                                     # IIIF Annotations don't use Purpose
-                                    del res['oa:hasPurpose']
-                                    res['@type'] = 'oa:Tag'
-                                if 'full' in res.keys():
-                                    res['chars'] = '<a href="' + res['full'] + '">' + res['full'] + '</a>'
-                                    del (res['full'])
-                                    del (res['@type'])
-                                if 'value' in res.keys():
-                                    if '@type' in res:
-                                        if res['@type'] == 'dctypes:Dataset':
-                                            res = {'chars': to_rdfa(res, con_txt=cont, rdfa=True),
-                                                   'format': 'application/html'
-                                                   }
+                                    del res["oa:hasPurpose"]
+                                    res["@type"] = "oa:Tag"
+                                if "full" in res.keys():
+                                    res["chars"] = (
+                                        '<a href="'
+                                        + res["full"]
+                                        + '">'
+                                        + res["full"]
+                                        + "</a>"
+                                    )
+                                    del (res["full"])
+                                    del (res["@type"])
+                                if "value" in res.keys():
+                                    if "@type" in res:
+                                        if res["@type"] == "dctypes:Dataset":
+                                            res = {
+                                                "chars": to_rdfa(
+                                                    res, con_txt=cont, rdfa=True
+                                                ),
+                                                "format": "application/html",
+                                            }
                                         else:
-                                            res['chars'] = res['value']
+                                            res["chars"] = res["value"]
                                     else:
-                                        res['chars'] = res['value']
-                                    del res['value']
-                        if isinstance(item['on'], dict):
-                            item['on'] = target_extract(item['on'])  # o
-                        elif isinstance(item['on'], list):
-                            item['on'] = [target_extract(o) for o in item['on']][0]  # o_list[0]
+                                        res["chars"] = res["value"]
+                                    del res["value"]
+                        if isinstance(item["on"], dict):
+                            item["on"] = target_extract(item["on"])  # o
+                        elif isinstance(item["on"], list):
+                            item["on"] = [target_extract(o) for o in item["on"]][
+                                0
+                            ]  # o_list[0]
                         else:
-                            item['on'] = target_extract(item['on'])
+                            item["on"] = target_extract(item["on"])
                     else:
-                        if '@type' in resource:
-                            if resource['@type'] == 'dctypes:Dataset':
-                                item['resource'] = [
-                                    {'chars': to_rdfa(resource, con_txt=cont, rdfa=True),
-                                     'format': 'application/html'
-                                     }
+                        if "@type" in resource:
+                            if resource["@type"] == "dctypes:Dataset":
+                                item["resource"] = [
+                                    {
+                                        "chars": to_rdfa(
+                                            resource, con_txt=cont, rdfa=True
+                                        ),
+                                        "format": "application/html",
+                                    }
                                 ]
-                                item['on'] = target_extract(item['on'], fake_selector=True)
-                if 'on' in item:
-                    anno_list['resources'].append(item)
+                                item["on"] = target_extract(
+                                    item["on"], fake_selector=True
+                                )
+                if "on" in item:
+                    anno_list["resources"].append(item)
                 else:
                     pass
         return json.dumps(anno_list, indent=4)
@@ -119,7 +151,7 @@ def repair_results(json_dict: dict, request_uri: str, cont: dict) -> Optional[st
         return None
 
 
-def target_extract(json_dict: dict, fake_selector: bool=False) -> Optional[str]:
+def target_extract(json_dict: dict, fake_selector: bool = False) -> Optional[str]:
     """
     Extract the target and turn into a simple 'on'
     :param fake_selector:
@@ -131,12 +163,12 @@ def target_extract(json_dict: dict, fake_selector: bool=False) -> Optional[str]:
             return "#".join([json_dict["full"], json_dict["selector"]["value"]])
         else:
             if fake_selector:
-                return '#'.join([json_dict['full'], 'xywh=0,0,50,50'])
+                return "#".join([json_dict["full"], "xywh=0,0,50,50"])
             else:
-                return json_dict['full']
+                return json_dict["full"]
     else:
         if fake_selector:
-            return '#'.join([json_dict, 'xywh=0,0,50,50'])
+            return "#".join([json_dict, "xywh=0,0,50,50"])
         else:
             return
 
@@ -151,9 +183,12 @@ def got_body(json_data: dict, request_uri: str, context: dict) -> Optional[str]:
     Turn the list of items into an annotation result.
     """
     content_dict = json_data
-    if ('first' in content_dict and 'as:items' in content_dict['first']
-        and '@list' in content_dict['first']['as:items']):
-        anno_results = content_dict['first']['as:items']['@list']
+    if (
+        "first" in content_dict
+        and "as:items" in content_dict["first"]
+        and "@list" in content_dict["first"]["as:items"]
+    ):
+        anno_results = content_dict["first"]["as:items"]["@list"]
         updated = repair_results(anno_results, request_uri, cont=context)
         if updated:
             return updated
@@ -190,11 +225,15 @@ def brilleaux(anno_container: str):
     """
     site_root = os.path.realpath(os.path.dirname(__file__))
     master_context = json.load(open(os.path.join(site_root, "context.json")))
-    del (master_context['@context']['dct'])  # remove unwanted alternative dcterms 'dct' prefix
-    del (master_context['@context']['dcterm'])  # unwanted alternative dcterms 'dcterm' prefix
-    del (master_context['@context']['sdo'])  # unwanted alternative schema.org prefix
-    del (master_context['@context']['sorg'])
-    if flask.request.method == 'GET':
+    del (
+        master_context["@context"]["dct"]
+    )  # remove unwanted alternative dcterms 'dct' prefix
+    del (
+        master_context["@context"]["dcterm"]
+    )  # unwanted alternative dcterms 'dcterm' prefix
+    del (master_context["@context"]["sdo"])  # unwanted alternative schema.org prefix
+    del (master_context["@context"]["sorg"])
+    if flask.request.method == "GET":
         # e.g. anno_server = 'https://elucidate.dlcs-ida.org/annotation/w3c/'
         if brilleaux_settings.ELUCIDATE_URI:
             anno_server = brilleaux_settings.ELUCIDATE_URI
@@ -210,8 +249,8 @@ def brilleaux(anno_container: str):
         r = requests.get(
             request_uri,
             headers={
-                "Accept": 'Application/ld+json; profile=' +
-                          '"http://iiif.io/api/presentation/2/context.json"'
+                "Accept": "Application/ld+json; profile="
+                + '"http://iiif.io/api/presentation/2/context.json"'
             },
         )
         logging.debug("Request URI: %s", request_uri)
@@ -223,7 +262,7 @@ def brilleaux(anno_container: str):
                 try:
                     content = got_body(r.json(), fl_req_uri, context=master_context)
                 except:
-                    logging.error('Could not parse the JSON')
+                    logging.error("Could not parse the JSON")
                     flask.abort(500)
                     content = None
                 if content:
@@ -235,13 +274,13 @@ def brilleaux(anno_container: str):
                 else:
                     flask.abort(500)
             else:
-                logging.error('No usable data returned from Elucidate')
+                logging.error("No usable data returned from Elucidate")
                 flask.abort(404)
         else:
-            logging.error('Elucidate returned an error.')
+            logging.error("Elucidate returned an error.")
             flask.abort(r.status_code)
     else:
-        logging.error('Brilleaux does not support this method.')
+        logging.error("Brilleaux does not support this method.")
         flask.abort(405)
 
 
