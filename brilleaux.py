@@ -115,7 +115,7 @@ def brilleaux(anno_container: str):
                 "Accept": "Application/ld+json; profile=" + '"http://www.w3.org/ns/anno.jsonld"'
             },
             flatten_ids=True,
-            trans_function=mirador_oa
+            trans_function=mirador_oa,
         )
         content = format_results(list(annotations), request_uri=request_uri)
         if content:

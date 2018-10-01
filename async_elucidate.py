@@ -1,13 +1,20 @@
 import asyncio
 import hashlib
 import logging
-from typing import Optional, Callable
+from typing import Optional
 from urllib.parse import quote_plus
 
 import aiohttp
 import requests
 from aiohttp import ClientSession, TCPConnector
-from elucidate import manifest_from_annotation, item_ids, read_anno, delete_anno, annotation_pages, transform_annotation
+from elucidate import (
+    manifest_from_annotation,
+    item_ids,
+    read_anno,
+    delete_anno,
+    annotation_pages,
+    transform_annotation,
+)
 
 
 async def fetch_all(urls: list, connector_limit: int = 5) -> asyncio.Future:
@@ -46,9 +53,7 @@ def async_items_by_topic(elucidate: str, topic: str, **kwargs) -> dict:
     :return: annotation object
     """
     t = quote_plus(topic)
-    sample_uri = (
-        elucidate + "/annotation/w3c/services/search/body?fields=source,id&value=" + t
-    )
+    sample_uri = elucidate + "/annotation/w3c/services/search/body?fields=source,id&value=" + t
     r = requests.get(sample_uri)
     if r.status_code == requests.codes.ok:
         loop = asyncio.get_event_loop()  # event loop
@@ -58,8 +63,11 @@ def async_items_by_topic(elucidate: str, topic: str, **kwargs) -> dict:
         pages = loop.run_until_complete(future)  # loop until done
         for page in pages:
             for item in page["items"]:
-                yield transform_annotation(item=item, flatten_at_ids=kwargs.get("flatten_ids"),
-                                           transform_function=kwargs.get("trans_function"))
+                yield transform_annotation(
+                    item=item,
+                    flatten_at_ids=kwargs.get("flatten_ids"),
+                    transform_function=kwargs.get("trans_function"),
+                )
 
 
 def async_items_by_target(elucidate: str, target_uri: str, **kwargs) -> dict:
@@ -71,11 +79,7 @@ def async_items_by_target(elucidate: str, target_uri: str, **kwargs) -> dict:
     :return: annotation object
     """
     t = quote_plus(target_uri)
-    sample_uri = (
-        elucidate
-        + "/annotation/w3c/services/search/target?fields=source, id&value="
-        + t
-    )
+    sample_uri = elucidate + "/annotation/w3c/services/search/target?fields=source, id&value=" + t
     r = requests.get(sample_uri)
     if r.status_code == requests.codes.ok:
         loop = asyncio.get_event_loop()  # event loop
@@ -85,16 +89,20 @@ def async_items_by_target(elucidate: str, target_uri: str, **kwargs) -> dict:
         pages = loop.run_until_complete(future)  # loop until done
         for page in pages:
             for item in page["items"]:
-                yield transform_annotation(item=item, flatten_at_ids=kwargs.get("flatten_ids"),
-                                           transform_function=kwargs.get("trans_function"))
+                yield transform_annotation(
+                    item=item,
+                    flatten_at_ids=kwargs.get("flatten_ids"),
+                    transform_function=kwargs.get("trans_function"),
+                )
 
 
-def async_items_by_container(elucidate: str,
-                             container: Optional[str] = None,
-                             target_uri: Optional[str] = None,
-                             header_dict: Optional[dict] = None,
-                             **kwargs
-                             ) -> Optional[dict]:
+def async_items_by_container(
+    elucidate: str,
+    container: Optional[str] = None,
+    target_uri: Optional[str] = None,
+    header_dict: Optional[dict] = None,
+    **kwargs
+) -> Optional[dict]:
     """
     Asynchronously yield annotations from a query by container to Elucidate.
 
@@ -108,14 +116,10 @@ def async_items_by_container(elucidate: str,
     """
     if target_uri and not container:
         container = hashlib.md5(target_uri).hexdigest()
-    if not container.endswith('/'):
-        container += '/'
+    if not container.endswith("/"):
+        container += "/"
     if container:
-        sample_uri = (
-            elucidate
-            + "/annotation/w3c/"
-            + container
-        )
+        sample_uri = elucidate + "/annotation/w3c/" + container
         r = requests.get(sample_uri, headers=header_dict)
         if r.status_code == requests.codes.ok:
             loop = asyncio.new_event_loop()
@@ -126,15 +130,16 @@ def async_items_by_container(elucidate: str,
             pages = loop.run_until_complete(future)  # loop until done
             for page in pages:
                 for item in page["items"]:
-                    yield transform_annotation(item=item, flatten_at_ids=kwargs.get("flatten_ids"),
-                                               transform_function=kwargs.get("trans_function"))
+                    yield transform_annotation(
+                        item=item,
+                        flatten_at_ids=kwargs.get("flatten_ids"),
+                        transform_function=kwargs.get("trans_function"),
+                    )
     else:
         return
 
 
-def async_manifests_by_topic(
-    elucidate: str, topic: Optional[str] = None
-) -> Optional[list]:
+def async_manifests_by_topic(elucidate: str, topic: Optional[str] = None) -> Optional[list]:
     """
     Asynchronously fetch the results from a topic query to Elucidate and yield manifest URIs
 
@@ -146,10 +151,7 @@ def async_manifests_by_topic(
     :return: manifest URI
     """
     if topic:
-        return [
-            manifest_from_annotation(anno)
-            for anno in async_items_by_topic(elucidate, topic)
-        ]
+        return [manifest_from_annotation(anno) for anno in async_items_by_topic(elucidate, topic)]
 
 
 def iterative_delete_by_target_async_get(
@@ -223,15 +225,11 @@ def iiif_iterative_delete_by_manifest_async_get(
                     for canvas in canvas_ids:
                         statuses.append(
                             iterative_delete_by_target_async_get(
-                                elucidate_base=elucidate_uri,
-                                target=canvas,
-                                dryrun=dry_run,
+                                elucidate_base=elucidate_uri, target=canvas, dryrun=dry_run
                             )
                         )
                 else:
-                    logging.error(
-                        "Could not find canvases in manifest %s", manifest_uri
-                    )
+                    logging.error("Could not find canvases in manifest %s", manifest_uri)
                     return False
             else:
                 logging.error("Manifest %s contained no sequences", manifest_uri)
