@@ -15,6 +15,7 @@ def mirador_oa(w3c_body: dict) -> dict:
     new_body = {"@type": "oa:Tag"}
     if "source" in w3c_body.keys():
         new_body["chars"] = '<a href="' + w3c_body["source"] + '">' + w3c_body["source"] + "</a>"
+        new_body["format"] = "application/html"
     if "value" in w3c_body.keys():
         new_body["chars"] = w3c_body["value"]
     new_body = remove_keys(new_body, ["value", "type", "generator", "source", "purpose"])
@@ -120,7 +121,7 @@ def brilleaux(anno_container: str):
         content = format_results(list(annotations), request_uri=request_uri)
         if content:
             resp = flask.Response(
-                json.dumps(content, indent=4),
+                json.dumps(content, sort_keys=True, indent=4),
                 headers={"Content-Type": "application/ld+json;charset=UTF-8"},
             )
             return resp

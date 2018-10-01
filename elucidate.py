@@ -51,7 +51,9 @@ def transform_annotation(
                 item["on"] = [target_extract(o) for o in item["target"]][0]  # o_list[0]
             else:
                 item["on"] = target_extract(item["target"])
-            item = remove_keys(d=item, keys=["generator", "label", "target"])
+            item["@id"] = item["id"]
+            item["@type"] = "oa:Annotation"
+            item = remove_keys(d=item, keys=["generator", "label", "target", "creator", "type", "id"])
             return item
         else:
             return
