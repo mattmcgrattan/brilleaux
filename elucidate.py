@@ -41,6 +41,7 @@ def transform_annotation(
                 for k, v in item.items():
                     if "@id" in item[k]:
                         item[k] = item[k]["@id"]
+            item["motivation"] = "oa:tagging"
             if isinstance(item["body"], list):
                 item["body"] = [transform_function(body) for body in item["body"]]
             elif isinstance(item["body"], dict):
@@ -53,7 +54,8 @@ def transform_annotation(
                 item["on"] = target_extract(item["target"])
             item["@id"] = item["id"]
             item["@type"] = "oa:Annotation"
-            item = remove_keys(d=item, keys=["generator", "label", "target", "creator", "type", "id"])
+            item["resource"] = item["body"]
+            item = remove_keys(d=item, keys=["generator", "label", "target", "creator", "type", "id", "body"])
             return item
         else:
             return
