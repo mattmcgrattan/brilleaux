@@ -2,7 +2,7 @@ import hashlib
 import requests
 import json
 import logging
-from typing import Optional
+from typing import Optional, Callable
 from urllib.parse import (
     quote_plus,
     urlparse,
@@ -11,6 +11,58 @@ from urllib.parse import (
     parse_qsl,
     parse_qs,
 )
+
+
+def remove_keys(d, keys):
+    return {k: v for k, v in d.items() if k in (set(d.keys()) - set(keys))}
+
+
+def target_extract(json_dict: dict, fake_selector: bool = False) -> Optional[str]:
+    """
+    Extract the target and turn into a simple 'on'
+    :param fake_selector: if True, create a top left 50px box and associate with that.
+    :param json_dict: annotation content as dictionary
+    :return: string for the target URI
+    """
+    if "source" in json_dict:
+        if "selector" in json_dict:
+            return "#".join([json_dict["source"], json_dict["selector"]["value"]])
+        else:
+            if fake_selector:
+                return "#".join([json_dict["source"], "xywh=0,0,50,50"])
+            else:
+                return json_dict["source"]
+    else:
+        if fake_selector:
+            return "#".join([json_dict, "xywh=0,0,50,50"])
+        else:
+            return
+
+def transform_annotation(
+    item: dict, flatten_at_ids: bool = True, transform_function: Callable = None
+) -> Optional[dict]:
+    if transform_function:
+        if "body" and "target" in item:
+            if flatten_at_ids:  # flatten dicts with @ids to simple key / value
+                for k, v in item.items():
+                    if "@id" in item[k]:
+                        item[k] = item[k]["@id"]
+            if isinstance(item["body"], list):
+                item["body"] = [transform_function(body) for body in item["body"]]
+            elif isinstance(item["body"], dict):
+                item["body"] = transform_function(item["body"])
+            if isinstance(item["target"], dict):
+                    item["on"] = target_extract(item["target"])  # o
+            elif isinstance(item["target"], list):
+                item["on"] = [target_extract(o) for o in item["target"]][0]  # o_list[0]
+            else:
+                item["on"] = target_extract(item["target"])
+            item = remove_keys(d=item, keys=["generator", "label", "target"])
+            return item
+        else:
+            return
+    else:
+        return item
 
 
 def set_query_field(url, field, value, replace=False):

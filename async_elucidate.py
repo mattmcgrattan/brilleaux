@@ -1,12 +1,13 @@
 import asyncio
+import hashlib
+import logging
+from typing import Optional, Callable
 from urllib.parse import quote_plus
+
 import aiohttp
 import requests
 from aiohttp import ClientSession, TCPConnector
-import logging
-from typing import Optional
-import hashlib
-from elucidate import manifest_from_annotation, item_ids, read_anno, delete_anno, annotation_pages
+from elucidate import manifest_from_annotation, item_ids, read_anno, delete_anno, annotation_pages, transform_annotation
 
 
 async def fetch_all(urls: list, connector_limit: int = 5) -> asyncio.Future:
@@ -36,7 +37,7 @@ async def fetch(url: str, session: aiohttp.client.ClientSession) -> dict:
         return resp
 
 
-def async_items_by_topic(elucidate: str, topic: str) -> dict:
+def async_items_by_topic(elucidate: str, topic: str, **kwargs) -> dict:
     """
     Asynchronously yield annotations from a query by topic to Elucidate.
 
@@ -57,10 +58,11 @@ def async_items_by_topic(elucidate: str, topic: str) -> dict:
         pages = loop.run_until_complete(future)  # loop until done
         for page in pages:
             for item in page["items"]:
-                yield item
+                yield transform_annotation(item=item, flatten_at_ids=kwargs.get("flatten_ids"),
+                                           transform_function=kwargs.get("trans_function"))
 
 
-def async_items_by_target(elucidate: str, target_uri: str) -> dict:
+def async_items_by_target(elucidate: str, target_uri: str, **kwargs) -> dict:
     """
     Asynchronously yield annotations from a query by topic to Elucidate.
 
@@ -83,12 +85,16 @@ def async_items_by_target(elucidate: str, target_uri: str) -> dict:
         pages = loop.run_until_complete(future)  # loop until done
         for page in pages:
             for item in page["items"]:
-                yield item
+                yield transform_annotation(item=item, flatten_at_ids=kwargs.get("flatten_ids"),
+                                           transform_function=kwargs.get("trans_function"))
 
 
-def async_items_by_container(elucidate: str, container: Optional[str] = None,
+def async_items_by_container(elucidate: str,
+                             container: Optional[str] = None,
                              target_uri: Optional[str] = None,
-                             header_dict: Optional[dict] = None) -> Optional[dict]:
+                             header_dict: Optional[dict] = None,
+                             **kwargs
+                             ) -> Optional[dict]:
     """
     Asynchronously yield annotations from a query by container to Elucidate.
 
@@ -112,7 +118,6 @@ def async_items_by_container(elucidate: str, container: Optional[str] = None,
         )
         r = requests.get(sample_uri, headers=header_dict)
         if r.status_code == requests.codes.ok:
-            # loop = asyncio.get_event_loop()  # event loop
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
             future = asyncio.ensure_future(
@@ -121,7 +126,8 @@ def async_items_by_container(elucidate: str, container: Optional[str] = None,
             pages = loop.run_until_complete(future)  # loop until done
             for page in pages:
                 for item in page["items"]:
-                    yield item
+                    yield transform_annotation(item=item, flatten_at_ids=kwargs.get("flatten_ids"),
+                                               transform_function=kwargs.get("trans_function"))
     else:
         return
 
