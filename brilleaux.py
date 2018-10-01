@@ -100,7 +100,7 @@ def brilleaux(anno_container: str):
     The @id of the annotation list is set to the request_url.
     """
     if brilleaux_settings.ELUCIDATE_URI:
-        anno_server = brilleaux_settings.ELUCIDATE_URI
+        anno_server = brilleaux_settings.ELUCIDATE_URI.replace("annotation/w3c/", "")
     else:
         anno_server = "https://elucidate.dlcs-ida.org/"
     if flask.request.method == "GET":
