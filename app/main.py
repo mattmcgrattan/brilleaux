@@ -18,7 +18,11 @@ def key_get(dictionary, keys, default=None):
     :param default: return this if nothing else
     :return: value
     """
-    return reduce(lambda d, key: d.get(key, default) if isinstance(d, dict) else default, keys, dictionary)
+    return reduce(
+        lambda d, key: d.get(key, default) if isinstance(d, dict) else default,
+        keys,
+        dictionary,
+    )
 
 
 def transform_anno(anno, anno_id):
@@ -74,7 +78,7 @@ def transform_anno(anno, anno_id):
     :return:
     """
     try:
-        values = json.loads(anno['body']['value'])
+        values = json.loads(anno["body"]["value"])
     except KeyError:
         return None
     else:
@@ -96,6 +100,37 @@ def transform_anno(anno, anno_id):
         on = anno['target'] + '#xywh=' + xywh
         result = {'@id': anno_id, '@type': 'oa:Annotation', 'motivation': 'oa:linking', 'on': on,
                   'resource': {'@id': url, 'label': label}}
+        label = key_get(
+            values,
+            keys=[
+                "input",
+                "https://annotation-studio.netlify.com/fields/linking/autocomplete",
+                "label",
+            ],
+        )
+        url = key_get(
+            values,
+            keys=[
+                "input",
+                "https://annotation-studio.netlify.com/fields/linking/autocomplete",
+                "url",
+            ],
+        ).replace(
+            "//index", "/index"
+        )  # quick hack to fix double //index uris
+        x = key_get(values, keys=["selector", "x"])
+        y = key_get(values, keys=["selector", "y"])
+        w = key_get(values, keys=["selector", "width"])
+        h = key_get(values, keys=["selector", "height"])
+        xywh = ",".join([str(f) for f in [x, y, w, h]])
+        on = anno["target"] + "#xywh=" + xywh
+        result = {
+            "@id": anno_id,
+            "@type": "oa:Annotation",
+            "motivation": "oa:linking",
+            "on": on,
+            "resource": {"@id": url, "label": label},
+        }
         return result
     finally:
         pass
@@ -105,9 +140,12 @@ def transform_results(elucidate_iri, request_uri):
     """
     Package transformed results as an annotation list.
     """
-    anno_list = {"@context": "http://iiif.io/api/presentation/2/context.json", "@type": "sc:AnnotationList",
-                 "@id": request_uri,
-                 'resources': [x for x in transform_annos(elucidate_iri, base=request_uri)]}
+    anno_list = {
+        "@context": "http://iiif.io/api/presentation/2/context.json",
+        "@type": "sc:AnnotationList",
+        "@id": request_uri,
+        "resources": [x for x in transform_annos(elucidate_iri, base=request_uri)],
+    }
     return anno_list
 
 
@@ -119,14 +157,14 @@ def transform_annos(elucidate_uri, base):
     """
     annotations = items_async(elucidate_uri)
     for count, annotation in enumerate(annotations):
-        yield transform_anno(annotation, anno_id=''.join([base, str(count)]))
+        yield transform_anno(annotation, anno_id="".join([base, str(count)]))
 
 
 app = flask.Flask(__name__)
 CORS(app)
 
 
-@app.route('/annotationlist/<path:anno_container>', methods=['GET'])
+@app.route("/annotationlist/<path:anno_container>", methods=["GET"])
 def brilleaux(anno_container):
     """
     Flask app.
@@ -145,25 +183,28 @@ def brilleaux(anno_container):
 
     The @id of the annotation list is set to the request_url.
     """
-    if flask.request.method == 'GET':
-        anno_server = 'https://elucidate-pmc.dlc.services/annotation/w3c/'
-        elucidate = ''.join([anno_server, anno_container])
+    if flask.request.method == "GET":
+        anno_server = "https://elucidate-pmc.dlc.services/annotation/w3c/"
+        elucidate = "".join([anno_server, anno_container])
         flask.Response(elucidate)
         # make sure URL ends in a /
-        if elucidate[-1] != '/':
+        if elucidate[-1] != "/":
             elucidate += "/"
             fl_req_uri = flask.request.url + "/"
         else:
             fl_req_uri = flask.request.url
-        annotationlist = transform_results(elucidate_iri=elucidate,
-                                           request_uri=fl_req_uri)
+        annotationlist = transform_results(
+            elucidate_iri=elucidate, request_uri=fl_req_uri
+        )
         if annotationlist:
-            resp = flask.Response(json.dumps(annotationlist, indent=2),
-                                  headers={'Content-Type': 'application/ld+json;charset=UTF-8'})
+            resp = flask.Response(
+                json.dumps(annotationlist, indent=2),
+                headers={"Content-Type": "application/ld+json;charset=UTF-8"},
+            )
             return resp
         else:
-            flask.abort('404')
+            flask.abort("404")
 
 
 if __name__ == "__main__":
-    app.run(threaded=True, debug=True, port=3000, host='0.0.0.0')
+    app.run(threaded=True, debug=True, port=3000, host="0.0.0.0")
