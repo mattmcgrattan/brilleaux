@@ -8,47 +8,7 @@ import logging
 import sys
 from typing import Optional
 from async_elucidate import async_items_by_container
-from elucidate import remove_keys
-
-
-def mirador_oa(w3c_body: dict) -> dict:
-    """
-    Transform a single W3C Web Annotation Body (e.g. as produced by Montague) and returns
-    formatted for Mirador.
-
-    :param w3c_body: annotation body
-    :return: transformed annotation body
-    """
-    new_body = {}
-    if "source" in w3c_body.keys():
-        new_body["chars"] = '<a href="' + w3c_body["source"] + '">' + w3c_body["source"] + "</a>"
-        new_body["format"] = "application/html"
-    if "value" in w3c_body.keys():
-        new_body["@type"] = "oa:Tag"
-        new_body["chars"] = w3c_body["value"]
-    new_body = remove_keys(new_body, ["value", "type", "generator", "source", "purpose"])
-    return new_body
-
-
-def format_results(annotation_list: list, request_uri: str) -> Optional[dict]:
-    """
-    Takes a list of annotations and returns as a standard Presentation API 1
-    Annotation List.
-
-    :param annotation_list: list of annotations
-    :param request_uri: the URI to use for the @id
-    :return dict or None
-    """
-    if annotation_list:
-        anno_list = {
-            "@context": "http://iiif.io/api/presentation/2/context.json",
-            "@type": "sc:AnnotationList",
-            "@id": request_uri,
-            "resources": annotation_list,
-        }
-        return anno_list
-    else:
-        return None
+from transformations import format_results, mirador_oa
 
 
 def get_local_context(filename, remove_prefixes: Optional[tuple] = None) -> Optional[dict]:

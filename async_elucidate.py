@@ -12,9 +12,9 @@ from elucidate import (
     item_ids,
     read_anno,
     delete_anno,
-    annotation_pages,
-    transform_annotation,
+    annotation_pages
 )
+from transformations import transform_annotation
 
 
 async def fetch_all(urls: list, connector_limit: int = 5) -> asyncio.Future:
