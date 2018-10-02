@@ -12,11 +12,12 @@ from elucidate import remove_keys
 
 
 def mirador_oa(w3c_body: dict) -> dict:
-    new_body = {"@type": "oa:Tag"}
+    new_body = {}
     if "source" in w3c_body.keys():
         new_body["chars"] = '<a href="' + w3c_body["source"] + '">' + w3c_body["source"] + "</a>"
         new_body["format"] = "application/html"
     if "value" in w3c_body.keys():
+        new_body["@type"] = "oa:Tag"
         new_body["chars"] = w3c_body["value"]
     new_body = remove_keys(new_body, ["value", "type", "generator", "source", "purpose"])
     return new_body
@@ -105,7 +106,7 @@ def brilleaux(anno_container: str):
     else:
         anno_server = "https://elucidate.dlcs-ida.org/"
     if flask.request.method == "GET":
-        request_uri = "".join([anno_server, "annotation/w3c/", anno_container])
+        request_uri = flask.request.url
         # make sure URL ends in a /
         if request_uri[-1] != "/":
             request_uri += "/"
