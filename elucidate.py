@@ -6,6 +6,32 @@ from typing import Optional
 from urllib.parse import quote_plus, urlparse, urlunparse, urlencode, parse_qsl, parse_qs
 
 
+def get_local_context(
+    filename, remove_prefixes: Optional[tuple] = None
+) -> Optional[dict]:
+    """
+    Load a JSON-LD context, and optionally remove some unrequired prefixes.
+
+    :param filename: json file
+    :param remove_prefixes: tuple of prefixes to delete
+    :return: dict object
+    """
+    site_root = os.path.realpath(os.path.dirname(__file__))
+    context = json.load(open(os.path.join(site_root, filename)))
+    if context:
+        if (
+            remove_prefixes
+        ):  # delete optional list (tuple) of prefixes from the context.
+            for prefix in remove_prefixes:
+                try:
+                    del context["@context"][prefix]
+                except KeyError:
+                    pass
+        return context
+    else:
+        return
+
+
 def set_query_field(url, field, value, replace=False):
     """
     Parse out the different parts of the URL.

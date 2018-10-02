@@ -1,45 +1,19 @@
 import json
 import brilleaux_settings
 import flask
-import os
 from flask_caching import Cache
 from flask_cors import CORS
 import logging
 import sys
-from typing import Optional
 from async_elucidate import async_items_by_container
 from transformations import format_results, mirador_oa
 
 
-def get_local_context(filename, remove_prefixes: Optional[tuple] = None) -> Optional[dict]:
-    """
-    Load a JSON-LD context, and optionally remove some unrequired prefixes.
-
-    :param filename: json file
-    :param remove_prefixes: tuple of prefixes to delete
-    :return: dict object
-    """
-    site_root = os.path.realpath(os.path.dirname(__file__))
-    context = json.load(open(os.path.join(site_root, filename)))
-    if context:
-        if remove_prefixes:  # delete optional list (tuple) of prefixes from the context.
-            for prefix in remove_prefixes:
-                try:
-                    del context["@context"][prefix]
-                except KeyError:
-                    pass
-        return context
-    else:
-        return
-
-
 app = flask.Flask(__name__)
-# app.config["context"] = get_local_context(
-#     filename="context.json", remove_prefixes=("dct", "dcterm", "sdo", "sorg")
-# )
-# app.config["iiif_context"] = get_local_context(filename="iiif_context.json")
 CORS(app)
-cache = Cache(app, config={"CACHE_TYPE": "filesystem", "CACHE_DIR": "./", "CACHE_THRESHOLD": 500})
+cache = Cache(
+    app, config={"CACHE_TYPE": "filesystem", "CACHE_DIR": "./", "CACHE_THRESHOLD": 500}
+)
 
 
 @app.route("/annotationlist/<path:anno_container>", methods=["GET"])
@@ -75,7 +49,8 @@ def brilleaux(anno_container: str):
             elucidate=anno_server,
             container=anno_container,
             header_dict={
-                "Accept": "Application/ld+json; profile=" + '"http://www.w3.org/ns/anno.jsonld"'
+                "Accept": "Application/ld+json; profile="
+                + '"http://www.w3.org/ns/anno.jsonld"'
             },
             flatten_ids=True,
             trans_function=mirador_oa,
