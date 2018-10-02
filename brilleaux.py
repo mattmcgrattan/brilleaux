@@ -12,6 +12,13 @@ from elucidate import remove_keys
 
 
 def mirador_oa(w3c_body: dict) -> dict:
+    """
+    Transform a single W3C Web Annotation Body (e.g. as produced by Montague) and returns
+    formatted for Mirador.
+
+    :param w3c_body: annotation body
+    :return: transformed annotation body
+    """
     new_body = {}
     if "source" in w3c_body.keys():
         new_body["chars"] = '<a href="' + w3c_body["source"] + '">' + w3c_body["source"] + "</a>"
@@ -25,18 +32,12 @@ def mirador_oa(w3c_body: dict) -> dict:
 
 def format_results(annotation_list: list, request_uri: str) -> Optional[dict]:
     """
-    Takes a result returned from Digirati
-    Annotation Server, which does NOT
-    display properly using the SimpleAnnotation
-    endpoint in Mirador, and makes:
+    Takes a list of annotations and returns as a standard Presentation API 1
+    Annotation List.
 
-    value = chars
-
-    and turns all oa:hasPurpose into:
-
-    oa:Tag
-
-    :rtype: string (Serialized JSON)
+    :param annotation_list: list of annotations
+    :param request_uri: the URI to use for the @id
+    :return dict or None
     """
     if annotation_list:
         anno_list = {
