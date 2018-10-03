@@ -1,4 +1,6 @@
 from typing import Optional, Callable, Union
+from jinja2 import Template
+import uuid
 
 
 def remove_keys(d, keys):
@@ -19,18 +21,16 @@ def target_extract(targets: Union[dict, list], target_format: str = "simple",
         if isinstance(targets, dict):
             targets = [targets]  # cast to a single item list.
         if target_format == "simple":
-            on = []
-            for t in targets:
-                if "source" in t:
-                    if "selector" in t:  # i.e. not a whole canvas or whole manifest annotation
-                        on.append("#".join([t["source"], t["selector"]["value"]]))
-                    else:  # i.e. whole canvas or whole manifest annotation
-                        if fake_selector:
-                            on.append("#".join([t["source"], fake_selector]))
-                        else:
-                            on.append(t["source"])
-                else:
-                    return on.append(t)
+            if "source" in targets[0]:
+                if "selector" in targets[0]:  # i.e. not a whole canvas or whole manifest annotation
+                    return "#".join([targets[0]["source"], targets[0]["selector"]["value"]])
+                else:  # i.e. whole canvas or whole manifest annotation
+                    if fake_selector:
+                        return "#".join([targets[0]["source"], fake_selector])
+                    else:
+                        return targets[0]["source"]
+            else:
+                return targets[0]
         elif target_format == "specificresource":
             on = []
             for t in targets:
@@ -43,7 +43,15 @@ def target_extract(targets: Union[dict, list], target_format: str = "simple",
                         if fake_selector:  # i.e. whole canvas or whole manifest annotation
                             selector_val = fake_selector  # use whatever the default fake selector is
                     if selector_val:
-                        on_dict["selector"] = {"@type": "oa:FragmentSelector", "value": selector_val}
+                        x, y, w, h = [int(a) for a in selector_val.split('=')[1].split(',')]
+                        path = "".join(
+                            ["M", str(x), ",", str(y), "h", str(0.5 * w), "v0", "h", str(0.5 * w), "v", str(0.5 * h),
+                             "v", str(0.5 * h), "h", str(-0.5 * w), "h", str(-0.5 * w), "v", str(-0.5 * h) + "z"]
+                        )
+                        with open("svg_template.html", "r") as template_file:
+                            template = Template(template_file.read())
+                            on_dict["selector"] = Template.render(template, path_value=path,
+                                                                  uuid_val=str(uuid.uuid4()))
                     on.append(on_dict)
             return on
     else:
@@ -65,7 +73,7 @@ def transform_annotation(
             elif isinstance(item["body"], dict):
                 item["body"] = transform_function(item["body"])
             item["on"] = target_extract(targets=item["target"],
-                                        target_format="simple",
+                                        target_format="specificresource",
                                         fake_selector="xywh=0,0,75,75")
             item["@id"] = item["id"]
             item["@type"] = "oa:Annotation"
