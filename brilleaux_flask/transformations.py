@@ -19,16 +19,18 @@ def target_extract(targets: Union[dict, list], target_format: str = "simple",
         if isinstance(targets, dict):
             targets = [targets]  # cast to a single item list.
         if target_format == "simple":
-            if "source" in targets[0]:
-                if "selector" in targets[0]:  # i.e. not a whole canvas or whole manifest annotation
-                    return "#".join([targets[0]["source"], targets[0]["selector"]["value"]])
-                else:  # i.e. whole canvas or whole manifest annotation
-                    if fake_selector:
-                        return "#".join([targets[0]["source"], fake_selector])
-                    else:
-                        return targets[0]["source"]
-            else:
-                return targets[0]
+            on = []
+            for t in targets:
+                if "source" in t:
+                    if "selector" in t:  # i.e. not a whole canvas or whole manifest annotation
+                        on.append("#".join([t["source"], t["selector"]["value"]]))
+                    else:  # i.e. whole canvas or whole manifest annotation
+                        if fake_selector:
+                            on.append("#".join([t["source"], fake_selector]))
+                        else:
+                            on.append(t["source"])
+                else:
+                    return on.append(t)
         elif target_format == "specificresource":
             on = []
             for t in targets:
