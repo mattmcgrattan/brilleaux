@@ -10,7 +10,7 @@ COPY requirements.txt /opt/brilleaux/.
 RUN pip install -r requirements.txt
 
 COPY *.json /opt/brilleaux/
-COPY *.py /opt/brilleaux/
+COPY ./brilleaux_flask/*.py /opt/brilleaux/
 
 CMD ["python", "-u", "./brilleaux.py"]
 
