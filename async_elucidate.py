@@ -162,10 +162,11 @@ def iterative_delete_by_target_async_get(
     annotations and then iteratively deleting them one at a time. Not a bulk delete operation
     using Elucidate's bulk APIs.
 
-    N.B. Negative: could be slow, and involve many HTTP requests, Positive: doesn't really matter how big the
-    result set is, it won't time out, as handling the annotations one at a time.
+    N.B. Negative: could be slow, and involve many HTTP requests, Positive: doesn't really matter
+    how big the result set is, it won't time out, as handling the annotations one at a time.
 
-    Asynchronous query using the Elucidate search by target API to fetch the list of annotations to delete.
+    Asynchronous query using the Elucidate search by target API to fetch the list of annotations to
+    delete.
 
     DELETE is not asychronous, but sequential.
 
