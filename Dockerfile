@@ -14,6 +14,7 @@ RUN pip install -r requirements.txt
 
 COPY *.json /opt/brilleaux/
 COPY ./brilleaux_flask/*.py /opt/brilleaux/
+COPY ./brilleaux_flask/*.html /opt/brilleaux/
 
 CMD [ "uwsgi", "--http", "0.0.0.0:5000", \
                "--uid", "uwsgi", \
