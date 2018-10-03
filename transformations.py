@@ -50,7 +50,10 @@ def transform_annotation(
             item["@id"] = item["id"]
             item["@type"] = "oa:Annotation"
             item["resource"] = item["body"]
-            item = remove_keys(d=item, keys=["generator", "label", "target", "creator", "type", "id", "body"])
+            item = remove_keys(
+                d=item,
+                keys=["generator", "label", "target", "creator", "type", "id", "body"],
+            )
             return item
         else:
             return
@@ -68,12 +71,16 @@ def mirador_oa(w3c_body: dict) -> dict:
     """
     new_body = {}
     if "source" in w3c_body.keys():
-        new_body["chars"] = '<a href="' + w3c_body["source"] + '">' + w3c_body["source"] + "</a>"
+        new_body["chars"] = (
+            '<a href="' + w3c_body["source"] + '">' + w3c_body["source"] + "</a>"
+        )
         new_body["format"] = "application/html"
     if "value" in w3c_body.keys():
         new_body["@type"] = "oa:Tag"
         new_body["chars"] = w3c_body["value"]
-    new_body = remove_keys(new_body, ["value", "type", "generator", "source", "purpose"])
+    new_body = remove_keys(
+        new_body, ["value", "type", "generator", "source", "purpose"]
+    )
     return new_body
 
 
