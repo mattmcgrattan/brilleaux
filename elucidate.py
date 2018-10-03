@@ -2,8 +2,16 @@ import hashlib
 import requests
 import json
 import logging
+import os
 from typing import Optional
-from urllib.parse import quote_plus, urlparse, urlunparse, urlencode, parse_qsl, parse_qs
+from urllib.parse import (
+    quote_plus,
+    urlparse,
+    urlunparse,
+    urlencode,
+    parse_qsl,
+    parse_qs,
+)
 
 
 def get_local_context(
@@ -89,7 +97,9 @@ def items_by_topic(elucidate: str, topic: str) -> dict:
     :return: annotation object
     """
     t = quote_plus(topic)
-    sample_uri = elucidate + "/annotation/w3c/services/search/body?fields=id,source&value=" + t
+    sample_uri = (
+        elucidate + "/annotation/w3c/services/search/body?fields=id,source&value=" + t
+    )
     r = requests.get(sample_uri)
     if r.status_code == requests.codes.ok:
         for page in annotation_pages(r.json()):
@@ -166,7 +176,9 @@ def bulk_update_topics(
                 "source": {"id": old_topic_id, "oa:isReplacedBy": new_topic_id},
             }
         )
-    post_data = json.dumps({"@context": "http://www.w3.org/ns/anno.jsonld", "body": bodies})
+    post_data = json.dumps(
+        {"@context": "http://www.w3.org/ns/anno.jsonld", "body": bodies}
+    )
     post_uri = elucidate_base + "/annotation/w3c/services/batch/update"
     logging.debug("Posting %s to %s", post_data, post_uri)
     if not dry_run:
@@ -236,7 +248,14 @@ def gen_search_by_target_uri(
     if elucidate_base and target_uri:
         uri = "".join(
             [
-                "/".join([elucidate_base, "annotation", model, "services/search/target?fields="]),
+                "/".join(
+                    [
+                        elucidate_base,
+                        "annotation",
+                        model,
+                        "services/search/target?fields=",
+                    ]
+                ),
                 ",".join(field),
                 "&value=",
                 target_uri,
@@ -353,7 +372,9 @@ def delete_anno(anno_uri: str, etag: str, dry_run: bool = True) -> int:
         if r.status_code == 204:
             logging.info("Deleted %s", anno_uri)
         else:
-            logging.error("Failed to delete %s server returned %s", anno_uri, r.status_code)
+            logging.error(
+                "Failed to delete %s server returned %s", anno_uri, r.status_code
+            )
         return r.status_code
     else:
         logging.debug("Dry run")
@@ -393,7 +414,9 @@ def create_container(container_name: str, label: str, elucidate_uri: str) -> int
             logging.debug("Container created at: %s", container_uri)
         else:
             logging.error(
-                "Could not create container at: %s reason: %s", container_uri, r.status_code
+                "Could not create container at: %s reason: %s",
+                container_uri,
+                r.status_code,
             )
         return r.status_code
 
@@ -458,7 +481,13 @@ def identify_target(annotation_content: dict) -> Optional[str]:
             for t in annotation_content["target"]:
                 targets.extend(
                     list(
-                        set([uri_contract(v) for k, v in t.items() if k in ["id", "@id", "source"]])
+                        set(
+                            [
+                                uri_contract(v)
+                                for k, v in t.items()
+                                if k in ["id", "@id", "source"]
+                            ]
+                        )
                     )
                 )
         if targets:
@@ -477,13 +506,15 @@ def create_anno(
     model: str = "w3c",
 ) -> int:
     """
-    POST an annotation to Elucidate, can be optionally passed a container, if container is None will use the
-    MD5 hash of the manifest or canvas target as the container.
+    POST an annotation to Elucidate, can be optionally passed a container, if container is None
+    will use the MD5 hash of the manifest or canvas target as the container.
 
     If container_create is True, the POST will create the container if it does not already exist.
 
-    :param elucidate_base: elucidate_base:  base URI for the annotation server, e.g. https://elucidate.example.com
-    :param target: the target for the annotation (optional), will attempt to parse anno for target if not present
+    :param elucidate_base: elucidate_base:  base URI for the annotation server,
+            e.g. https://elucidate.example.com
+    :param target: the target for the annotation (optional), will attempt to parse anno for target
+            if not present
     :param annotation: Python dict for the annotation
     :param container: container name (optional), will use hash of target uri if not present
     :param model: oa or w3c
@@ -491,11 +522,15 @@ def create_anno(
     """
     if elucidate_base:
         if annotation:
-            if not container:  # N.B. assumes all targets in the annotation have the same base URI
+            if (
+                not container
+            ):  # N.B. assumes all targets in the annotation have the same base URI
                 if not target:
                     target = identify_target(annotation)
                     if not target:
-                        logging.error("Could not identify a target to hash for the container")
+                        logging.error(
+                            "Could not identify a target to hash for the container"
+                        )
                         return 400
                 container = hashlib.md5(target).hexdigest()
             elucidate = "/".join([elucidate_base, "annotation", model, ""])
@@ -526,7 +561,9 @@ def create_anno(
         return 400
 
 
-def bulk_delete_target(target_uri: str, elucidate_uri: str, dry_run: bool = True) -> int:
+def bulk_delete_target(
+    target_uri: str, elucidate_uri: str, dry_run: bool = True
+) -> int:
     """
     Use Elucidate's bulk delete API to delete everything with a given target.
 
@@ -557,15 +594,18 @@ def bulk_delete_target(target_uri: str, elucidate_uri: str, dry_run: bool = True
 
 
 def iterative_delete_by_target(
-    target: str, elucidate_base: str, search_method: str = "container", dryrun: bool = True
+    target: str,
+    elucidate_base: str,
+    search_method: str = "container",
+    dryrun: bool = True,
 ) -> bool:
     """
     Delete all annotations in a container for a target uri. Works by querying for the
     annotations and then iteratively deleting them one at a time. Not a bulk delete operation
     using Elucidate's bulk APIs.
 
-    N.B. Negative: could be slow, and involve many HTTP requests, Positive: doesn't really matter how big the
-    result set is, it won't time out, as handling the annotations one at a time.
+    N.B. Negative: could be slow, and involve many HTTP requests, Positive: doesn't really matter
+    how big the result set is, it won't time out, as handling the annotations one at a time.
 
     Can query using the Elucidate search by target API or hash the target URI to get a container.
 
@@ -577,7 +617,9 @@ def iterative_delete_by_target(
     """
     statuses = []
     if search_method == "container":
-        uri = gen_search_by_container_uri(elucidate_base=elucidate_base, target_uri=target)
+        uri = gen_search_by_container_uri(
+            elucidate_base=elucidate_base, target_uri=target
+        )
     elif search_method == "search":
         uri = gen_search_by_target_uri(target_uri=target, elucidate_base=elucidate_base)
     else:
@@ -593,7 +635,9 @@ def iterative_delete_by_target(
                 content, etag = read_anno(annotation)
                 s = delete_anno(content["id"], etag, dry_run=dryrun)
                 statuses.append(s)
-                logging.info("Deleting %s status %s, dry run: %s", content["id"], s, dryrun)
+                logging.info(
+                    "Deleting %s status %s, dry run: %s", content["id"], s, dryrun
+                )
         else:
             logging.warning("No annotations for %s", uri)
             return True
@@ -639,7 +683,9 @@ def iiif_iterative_delete_by_manifest(
                             )
                         )
                 else:
-                    logging.error("Could not find canvases in manifest %s", manifest_uri)
+                    logging.error(
+                        "Could not find canvases in manifest %s", manifest_uri
+                    )
                     return False
             else:
                 logging.error("Manifest %s contained no sequences", manifest_uri)
@@ -681,7 +727,9 @@ def iiif_bulk_delete_by_manifest(
                         statuses.append(
                             200
                             == bulk_delete_target(
-                                target_uri=canvas, elucidate_uri=elucidate_uri, dry_run=dry_run
+                                target_uri=canvas,
+                                elucidate_uri=elucidate_uri,
+                                dry_run=dry_run,
                             )
                         )
                 else:
@@ -693,7 +741,9 @@ def iiif_bulk_delete_by_manifest(
             statuses.append(
                 200
                 == bulk_delete_target(
-                    target_uri=manifest_uri, elucidate_uri=elucidate_uri, dry_run=dry_run
+                    target_uri=manifest_uri,
+                    elucidate_uri=elucidate_uri,
+                    dry_run=dry_run,
                 )
             )
     else:
