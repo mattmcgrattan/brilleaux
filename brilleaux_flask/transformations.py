@@ -41,7 +41,7 @@ def target_extract(targets: Union[dict, list], target_format: str = "simple",
                         if fake_selector:  # i.e. whole canvas or whole manifest annotation
                             selector_val = fake_selector  # use whatever the default fake selector is
                     if selector_val:
-                        on_dict["selector"] = {"@type": "oa:choice",
+                        on_dict["selector"] = {"@type": "oa:Choice",
                                                "default": {"@type": "oa:FragmentSelector", "value": selector_val}}
                     on.append(on_dict)
             return on
