@@ -1,30 +1,51 @@
-from typing import Optional, Callable
+from typing import Optional, Callable, Union
 
 
 def remove_keys(d, keys):
     return {k: v for k, v in d.items() if k in (set(d.keys()) - set(keys))}
 
 
-def target_extract(json_dict: dict, fake_selector: bool = False) -> Optional[str]:
+def target_extract(targets: Union[dict, list], target_format: str = "simple",
+                   fake_selector: Optional[str] = None) -> Optional[Union[list, str, dict]]:
     """
     Extract the target and turn into a simple 'on'
-    :param fake_selector: if True, create a top left 50px box and associate with that.
-    :param json_dict: annotation content as dictionary
+    :param fake_selector: e.g. "xywh=0,0,50,50" to use for selectorless annotations
+    :param targets: annotation content as dictionary
+    :param target_format: "simple" or "specificresource"
+        simple "on" versus on selector with oa:FragmentSelector.
     :return: string for the target URI
     """
-    if "source" in json_dict:
-        if "selector" in json_dict:
-            return "#".join([json_dict["source"], json_dict["selector"]["value"]])
-        else:
-            if fake_selector:
-                return "#".join([json_dict["source"], "xywh=0,0,50,50"])
+    if targets:
+        if isinstance(targets, dict):
+            targets = [targets]  # cast to a single item list.
+        if target_format == "simple":
+            if "source" in targets[0]:
+                if "selector" in targets[0]:  # i.e. not a whole canvas or whole manifest annotation
+                    return "#".join([targets[0]["source"], targets[0]["selector"]["value"]])
+                else:  # i.e. whole canvas or whole manifest annotation
+                    if fake_selector:
+                        return "#".join([targets[0]["source"], fake_selector])
+                    else:
+                        return targets[0]["source"]
             else:
-                return json_dict["source"]
+                return targets[0]
+        elif target_format == "specificresource":
+            on = []
+            for t in targets:
+                selector_val = None
+                if "source" in t:
+                    on_dict = {"@type": "oa:SpecificResource", "full": t["source"]}
+                    if "selector" in t:  # i.e. not a whole canvas or whole manifest annotation
+                        selector_val = t["selector"]["value"]
+                    else:
+                        if fake_selector:  # i.e. whole canvas or whole manifest annotation
+                            selector_val = fake_selector  # use whatever the default fake selector is
+                    if selector_val:
+                        on_dict["selector"] = {"@type": "oa:FragmentSelector", "value": selector_val}
+                    on.append(on_dict)
+            return on
     else:
-        if fake_selector:
-            return "#".join([json_dict, "xywh=0,0,50,50"])
-        else:
-            return
+        return
 
 
 def transform_annotation(
@@ -41,12 +62,9 @@ def transform_annotation(
                 item["body"] = [transform_function(body) for body in item["body"]]
             elif isinstance(item["body"], dict):
                 item["body"] = transform_function(item["body"])
-            if isinstance(item["target"], dict):
-                item["on"] = target_extract(item["target"])  # o
-            elif isinstance(item["target"], list):
-                item["on"] = [target_extract(o) for o in item["target"]][0]  # o_list[0]
-            else:
-                item["on"] = target_extract(item["target"])
+            item["on"] = target_extract(targets=item["target"],
+                                        target_format="specificresource",
+                                        fake_selector="xywh=0,0,75,75")
             item["@id"] = item["id"]
             item["@type"] = "oa:Annotation"
             item["resource"] = item["body"]
