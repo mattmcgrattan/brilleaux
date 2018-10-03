@@ -65,7 +65,7 @@ def transform_annotation(
             elif isinstance(item["body"], dict):
                 item["body"] = transform_function(item["body"])
             item["on"] = target_extract(targets=item["target"],
-                                        target_format="specificresource",
+                                        target_format="simple",
                                         fake_selector="xywh=0,0,75,75")
             item["@id"] = item["id"]
             item["@type"] = "oa:Annotation"
