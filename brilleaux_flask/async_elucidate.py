@@ -12,7 +12,7 @@ from elucidate import (
     item_ids,
     read_anno,
     delete_anno,
-    annotation_pages
+    annotation_pages,
 )
 from transformations import transform_annotation
 
@@ -53,10 +53,13 @@ def async_items_by_topic(elucidate: str, topic: str, **kwargs) -> dict:
     :return: annotation object
     """
     t = quote_plus(topic)
-    sample_uri = elucidate + "/annotation/w3c/services/search/body?fields=source,id&value=" + t
+    sample_uri = (
+        elucidate + "/annotation/w3c/services/search/body?fields=source,id&value=" + t
+    )
     r = requests.get(sample_uri)
     if r.status_code == requests.codes.ok:
-        loop = asyncio.get_event_loop()  # event loop
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
         future = asyncio.ensure_future(
             fetch_all([p for p in annotation_pages(r.json())])
         )  # tasks to do
@@ -79,21 +82,45 @@ def async_items_by_target(elucidate: str, target_uri: str, **kwargs) -> dict:
     :return: annotation object
     """
     t = quote_plus(target_uri)
-    sample_uri = elucidate + "/annotation/w3c/services/search/target?fields=source, id&value=" + t
+    sample_uri = (
+        elucidate
+        + "/annotation/w3c/services/search/target?fields=source, id&value="
+        + t
+    )
     r = requests.get(sample_uri)
+    filter_by = kwargs.get("filter_by")
     if r.status_code == requests.codes.ok:
-        loop = asyncio.get_event_loop()  # event loop
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
         future = asyncio.ensure_future(
             fetch_all([p for p in annotation_pages(r.json())])
         )  # tasks to do
         pages = loop.run_until_complete(future)  # loop until done
         for page in pages:
             for item in page["items"]:
-                yield transform_annotation(
-                    item=item,
-                    flatten_at_ids=kwargs.get("flatten_ids"),
-                    transform_function=kwargs.get("trans_function"),
-                )
+                if (
+                    filter_by
+                ):  # will not return if the annotation doesn't have the filter property, e.g. creator
+                    for filter_key, filter_value_list in filter_by.items():
+                        for filter_value in filter_value_list:
+                            if item.get(filter_key):
+                                if all(
+                                    [
+                                        item[filter_key][k] == v
+                                        for k, v in filter_value.items()
+                                    ]
+                                ):
+                                    yield transform_annotation(
+                                        item=item,
+                                        flatten_at_ids=kwargs.get("flatten_ids"),
+                                        transform_function=kwargs.get("trans_function"),
+                                    )
+                else:
+                    yield transform_annotation(
+                        item=item,
+                        flatten_at_ids=kwargs.get("flatten_ids"),
+                        transform_function=kwargs.get("trans_function"),
+                    )
 
 
 def async_items_by_container(
@@ -121,6 +148,7 @@ def async_items_by_container(
     if container:
         sample_uri = elucidate + "/annotation/w3c/" + container
         r = requests.get(sample_uri, headers=header_dict)
+        filter_by = kwargs.get("filter_by")
         if r.status_code == requests.codes.ok:
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
@@ -130,16 +158,33 @@ def async_items_by_container(
             pages = loop.run_until_complete(future)  # loop until done
             for page in pages:
                 for item in page["items"]:
-                    yield transform_annotation(
-                        item=item,
-                        flatten_at_ids=kwargs.get("flatten_ids"),
-                        transform_function=kwargs.get("trans_function"),
-                    )
+
+                    if filter_by:
+                        for filter_key, filter_value in filter_by.items():
+                            if all(
+                                [
+                                    item[filter_key][k] == v
+                                    for k, v in filter_value.items()
+                                ]
+                            ):
+                                yield transform_annotation(
+                                    item=item,
+                                    flatten_at_ids=kwargs.get("flatten_ids"),
+                                    transform_function=kwargs.get("trans_function"),
+                                )
+                    else:
+                        yield transform_annotation(
+                            item=item,
+                            flatten_at_ids=kwargs.get("flatten_ids"),
+                            transform_function=kwargs.get("trans_function"),
+                        )
     else:
         return
 
 
-def async_manifests_by_topic(elucidate: str, topic: Optional[str] = None) -> Optional[list]:
+def async_manifests_by_topic(
+    elucidate: str, topic: Optional[str] = None
+) -> Optional[list]:
     """
     Asynchronously fetch the results from a topic query to Elucidate and yield manifest URIs
 
@@ -151,7 +196,10 @@ def async_manifests_by_topic(elucidate: str, topic: Optional[str] = None) -> Opt
     :return: manifest URI
     """
     if topic:
-        return [manifest_from_annotation(anno) for anno in async_items_by_topic(elucidate, topic)]
+        return [
+            manifest_from_annotation(anno)
+            for anno in async_items_by_topic(elucidate, topic)
+        ]
 
 
 def iterative_delete_by_target_async_get(
@@ -226,11 +274,15 @@ def iiif_iterative_delete_by_manifest_async_get(
                     for canvas in canvas_ids:
                         statuses.append(
                             iterative_delete_by_target_async_get(
-                                elucidate_base=elucidate_uri, target=canvas, dryrun=dry_run
+                                elucidate_base=elucidate_uri,
+                                target=canvas,
+                                dryrun=dry_run,
                             )
                         )
                 else:
-                    logging.error("Could not find canvases in manifest %s", manifest_uri)
+                    logging.error(
+                        "Could not find canvases in manifest %s", manifest_uri
+                    )
                     return False
             else:
                 logging.error("Manifest %s contained no sequences", manifest_uri)

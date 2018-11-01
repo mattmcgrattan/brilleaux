@@ -39,7 +39,7 @@ def brilleaux(anno_container: str):
     if brilleaux_settings.ELUCIDATE_URI:
         anno_server = brilleaux_settings.ELUCIDATE_URI.replace("annotation/w3c/", "")
     else:
-        anno_server = "https://elucidate.dlcs-ida.org/"
+        anno_server = "https://elucidate.dlcs-ida.org/"  # Do we need this anymore?
     if flask.request.method == "GET":
         request_uri = flask.request.url
         # make sure URL ends in a /
