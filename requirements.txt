@@ -12,8 +12,9 @@ itsdangerous==0.24
 Jinja2==2.10
 MarkupSafe==1.0
 multidict==4.4.2
+pyelucidate==0.2.0
 PyLD==1.0.3
-requests==2.19.1
+requests==2.21.0
 six==1.11.0
 urllib3==1.23
 Werkzeug==0.14.1
