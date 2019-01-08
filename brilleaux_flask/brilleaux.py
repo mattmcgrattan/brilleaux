@@ -5,11 +5,7 @@ from flask_caching import Cache
 from flask_cors import CORS
 import logging
 import sys
-
-# from async_elucidate import async_items_by_container
 from pyelucidate.pyelucidate import async_items_by_container, format_results, mirador_oa
-
-# from transformations import format_results, mirador_oa
 
 
 app = flask.Flask(__name__)
